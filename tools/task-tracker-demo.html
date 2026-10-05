@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Task Tracker demo: Juniper Home Goods</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#d8dad6; --ink:#2a2e2b; --muted:#5b615c; --field:#ffffff; --border:rgba(46,79,62,0.16);
+  --card:#f3f4f1; --green:#2e4f3e; --green-ink:#2e4f3e; --teal:#3a6f73; --amber:#c18a3f; --brick:#9c5a4a;
+  --flag-bg:rgba(156,90,74,0.13); --flag-ink:#7a4436; --note-bg:rgba(193,138,63,0.15);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#20241f; --ink:#e9ece7; --muted:#a8ada4; --field:#2b2f29; --border:rgba(255,255,255,0.12);
+    --card:#262a24; --flag-bg:rgba(226,168,148,0.16); --flag-ink:#e2a894; --note-bg:rgba(193,138,63,0.2); --green-ink:#9fd6bd; }
+}
+:root[data-theme="dark"]{ --bg:#20241f; --ink:#e9ece7; --muted:#a8ada4; --field:#2b2f29; --border:rgba(255,255,255,0.12);
+  --card:#262a24; --flag-bg:rgba(226,168,148,0.16); --flag-ink:#e2a894; --note-bg:rgba(193,138,63,0.2); --green-ink:#9fd6bd; }
+*{box-sizing:border-box;}
+body{margin:0; font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;
+  padding:env(safe-area-inset-top,0px) 16px calc(60px + env(safe-area-inset-bottom,0px)); line-height:1.5;}
+.wrap{max-width:760px; margin:0 auto; padding-top:24px;}
+h1{font-size:22px; font-weight:700; margin:0 0 4px; color:var(--green-ink);}
+.sub{font-size:14px; color:var(--muted); margin:0 0 16px;}
+.topbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;}
+.role-banner{background:var(--green); color:#fff; padding:10px 14px; border-radius:10px; font-size:13px; flex:1; min-width:200px;}
+.toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+.toolbar button{padding:8px 12px; min-height:36px; font-size:13px;}
+.stats-row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
+.stat-card{flex:1 1 120px; background:var(--card); border-radius:12px; padding:12px 14px;}
+.stat-card .num{font-size:20px; font-weight:700; color:var(--green-ink);}
+.stat-card .label{font-size:12px; color:var(--muted);}
+.skill-line{font-size:12.5px; color:var(--muted); margin:0 0 12px;}
+.workload{background:var(--card); border-radius:14px; padding:12px 16px; margin-bottom:10px; font-size:13.5px;}
+.bar{height:8px; background:var(--field); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin:8px 0 4px;}
+.bar > div{height:100%; background:var(--teal);}
+.bar > div.full{background:var(--amber);}
+.session-card{background:var(--card); border:2px solid var(--teal); border-radius:16px; padding:14px 16px; margin-bottom:12px;}
+.session-card.live{border-color:#4a8a5a;}
+body.preview-mode .session-card button, body.preview-mode .session-card select{pointer-events:none; opacity:.45;}
+.focus{border:2px solid var(--teal); border-radius:16px; padding:10px 10px 0; margin-bottom:12px;}
+.focus h3{margin:0 0 8px 6px; font-size:14px; color:var(--teal);}
+.section-title{font-size:15px; font-weight:700; color:var(--green-ink); margin:24px 0 10px;}
+.card{background:var(--card); border-radius:14px; padding:16px 18px; margin-bottom:12px; scroll-margin-top:16px;}
+.card.flash{box-shadow:0 0 0 3px var(--amber);}
+.top-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px;}
+.task-name{font-size:16px; font-weight:700;}
+.badge{font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:20px; white-space:nowrap; color:#fff;}
+.badge.open{background:#c18a3f;} .badge.assigned_pending{background:#8a7a3a;} .badge.claimed{background:#3a6f73;}
+.badge.needs_revision{background:#9c5a4a;} .badge.submitted{background:#5b6f9e;} .badge.approved{background:#4a8a5a;}
+.badge.payment_sent{background:#5b6f9e;} .badge.paid{background:#2e4f3e;} .badge.cancelled{background:#7b807c;} .badge.scheduled{background:#7b807c;}
+.desc{font-size:14px; margin-bottom:10px; white-space:pre-wrap;}
+.meta-row{display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:13px; color:var(--muted); margin-bottom:8px;}
+.chip{background:var(--field); border:1px solid var(--border); border-radius:20px; padding:2px 10px; font-size:12.5px; color:var(--ink);}
+.chip.flag, .flag{background:var(--flag-bg); color:var(--flag-ink); border-color:transparent;}
+.flag{display:inline-block; border-radius:20px; padding:2px 10px; font-size:12.5px; font-weight:600;}
+.note-box{background:var(--note-bg); border-radius:10px; padding:10px 12px; margin:8px 0; font-size:13.5px;}
+.note-box.calm{background:rgba(46,79,62,0.08);}
+.crit-wrap{margin:0 0 10px;}
+.crit{display:flex; gap:8px; align-items:flex-start; font-size:13.5px; margin:4px 0; font-weight:400; color:var(--ink); cursor:pointer;}
+.crit input{width:auto; margin-top:3px; flex:0 0 auto;}
+.actions{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+button{font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border:none; border-radius:9px; padding:10px 16px; min-height:40px;}
+.btn-primary{background:var(--green); color:#fff;}
+.btn-ghost{background:transparent; border:1px solid var(--border); color:var(--muted);}
+.btn-danger{background:transparent; border:1px solid var(--brick); color:var(--brick);}
+a.btn-link{display:inline-block; text-decoration:none; font-family:inherit; font-size:13.5px; font-weight:600; border-radius:9px; padding:10px 16px; background:#25806a; color:#fff; min-height:40px; margin:0 6px 6px 0;}
+button:disabled{opacity:.5; cursor:default;}
+input, select, textarea{font-family:inherit; font-size:14px; padding:10px 12px; border-radius:9px; border:1px solid var(--border);
+  background:var(--field); color:var(--ink); width:100%;}
+label{font-size:12.5px; font-weight:600; color:var(--muted); display:block; margin-bottom:4px;}
+.field{margin-bottom:12px;} .field-row{display:flex; gap:10px;} .field-row .field{flex:1;}
+.help{font-size:12px; color:var(--muted); margin-top:4px;}
+.followups{background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px;}
+.followups h3{font-size:14px; margin:0 0 8px; color:var(--green-ink);}
+.fu-item{display:block; width:100%; text-align:left; background:transparent; border:none; border-left:3px solid var(--border);
+  border-radius:0; padding:6px 10px; margin-bottom:4px; font-size:13.5px; font-weight:500; color:var(--ink); min-height:0;}
+.fu-item.flag{border-left-color:var(--brick); background:var(--flag-bg);}
+.fu-item.wait{color:var(--muted);}
+.create-card summary{cursor:pointer; font-weight:700; color:var(--green-ink); font-size:15px;}
+.create-card .body{margin-top:12px;}
+.filterbar{padding:12px 14px;}
+.fb-row{display:flex; gap:8px; margin-bottom:8px;}
+.fb-row input{flex:1;} .fb-row select{flex:0 0 46%;}
+.fb-chips{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px;}
+.chip-btn{padding:6px 12px; min-height:32px; font-size:12.5px; background:var(--field); border:1px solid var(--border); color:var(--muted); border-radius:20px;}
+.chip-btn.on{background:var(--green); color:#fff; border-color:var(--green-ink);}
+.fb-grid{display:grid; grid-template-columns:1fr 1fr; gap:0 10px; margin-top:10px;}
+details.hist{margin-top:10px; font-size:12.5px; color:var(--muted);}
+details.hist summary{cursor:pointer;}
+.hist-row{display:flex; gap:10px; padding:3px 0; border-bottom:1px dashed var(--border);}
+.hist-date{min-width:84px; opacity:.85;}
+.empty{font-size:14px; color:var(--muted); padding:24px 4px;}
+.hidden{display:none !important;}
+.rem-off{display:none !important;}
+body.preview-mode .card .actions button, body.preview-mode #createTaskBtn, body.preview-mode .crit input{pointer-events:none; opacity:.45;}
+.modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px;}
+.modal-box{background:var(--card); border-radius:16px; padding:20px; width:100%; max-width:460px; max-height:90vh; overflow:auto;}
+.modal-title{font-size:17px; font-weight:700; margin-bottom:6px; color:var(--green-ink);}
+.modal-intro{font-size:13.5px; color:var(--muted); margin:0 0 14px;}
+.modal-error{font-size:13px; color:var(--brick); min-height:18px; margin-bottom:4px;}
+.guide h4{margin:14px 0 4px; font-size:14px; color:var(--green-ink);} .guide p, .guide li{font-size:13.5px; margin:3px 0;}
+.toast{position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--green); color:#fff; padding:12px 18px;
+  border-radius:12px; font-size:13.5px; z-index:1100; max-width:92%; box-shadow:0 6px 20px rgba(0,0,0,.25); display:flex; gap:12px; align-items:center;}
+.toast.error{background:var(--brick);}
+.toast button{background:rgba(255,255,255,.2); color:#fff; padding:6px 10px; min-height:0; font-size:12.5px; white-space:nowrap;}
+/* ---- demo bar ---- */
+.demo-bar{background:var(--card); border-left:4px solid var(--amber); border-radius:12px; padding:12px 14px; margin-bottom:18px;}
+.demo-label{font-size:13.5px; font-weight:600; color:var(--ink); margin:0 0 10px;}
+.demo-controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.demo-view-label{font-size:12.5px; color:var(--muted); font-weight:600;}
+.seg{display:inline-flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--field);}
+.seg button{border-radius:0; background:transparent; color:var(--muted); min-height:38px; padding:8px 12px;}
+.seg button[aria-pressed="true"]{background:var(--green); color:#fff;}
+.demo-controls .btn-ghost{min-height:38px; padding:8px 12px;}
+.demo-bar .help{margin-top:8px;}
+.shop{font-size:13px; color:var(--muted); margin:0 0 6px;}
+.adapt-row{display:flex; flex-direction:column; gap:1px;}
+.adapt-row b{font-size:13.5px;}
+button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible{outline:2px solid var(--amber); outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="demo-bar">
+    <p class="demo-label">Demo with fictional data. Based on a tool I built and use to run my own small team.</p>
+    <div class="demo-controls">
+      <span class="demo-view-label">View as</span>
+      <div class="seg" role="group" aria-label="Choose whose view to see">
+        <button id="viewOwnerBtn" aria-pressed="true">Nora, the owner</button>
+        <button id="viewTeamBtn" aria-pressed="false">Sam, the assistant</button>
+      </div>
+      <button class="btn-ghost" id="demoAdaptBtn">⚙️ Make it yours</button>
+      <button class="btn-ghost" id="demoResetBtn">↺ Reset demo</button>
+    </div>
+    <div class="help">Try anything: it's saved only in this browser and nothing is sent to anyone. Switch views to see the same tasks from both sides.</div>
+  </div>
+  <h1>Task Tracker</h1>
+  <p class="shop">Juniper Home Goods, a small online home-décor shop</p>
+  <p class="sub" id="subText">Loading…</p>
+  <div class="topbar">
+    <div class="role-banner" id="roleBanner"></div>
+    <button class="btn-ghost rem-off" id="previewToggleBtn" style="display:none;">👀 Preview Her View</button>
+  </div>
+  <div id="accessNote" class="owner-only" style="margin:-4px 0 12px; font-size:12.5px;"></div>
+  <div class="toolbar">
+    <button class="btn-ghost her-only" id="tbStart">▶ Start working</button>
+    <button class="btn-ghost her-only" id="tbDiary">📓 My work diary</button>
+    <button class="btn-ghost" id="tbStatement">📄 Statement</button>
+    <button class="btn-ghost owner-only" id="tbRecurring">🔁 Recurring</button>
+    <button class="btn-ghost owner-only rem-off" id="tbReminders">🔔 Reminder links</button>
+    <button class="btn-ghost owner-only rem-off" id="tbBackup">💾 Backup</button>
+    <button class="btn-ghost preview-only hidden rem-off" id="tbReminderPreview">🔔 See her reminders</button>
+    <button class="btn-ghost" id="tbHelp">ℹ️ How this works</button>
+  </div>
+  <details class="card owner-only rem-off" id="remCard">
+    <summary id="remSummary" style="cursor:pointer; font-weight:700; color:var(--green-ink); font-size:15px;">🔔 Her gentle reminders — paste the four document links</summary>
+    <div style="margin-top:12px;">
+      <p class="help" style="margin:0 0 12px;">One-time setup. <b>Each link saves the moment you paste it</b>, so you can leave to copy the next one and come back — nothing is lost. Links are stored only inside this tracker, never in a chat. In Google, set each document to <b>Restricted</b> and add her account, so the link alone opens nothing for anyone else.</p>
+      <div id="remRows"></div>
+      <div class="actions"><button class="btn-ghost" id="remHideBtn">Done — hide this</button></div>
+    </div>
+  </details>
+  <div class="stats-row" id="statsRow"></div>
+  <div class="skill-line" id="skillLine"></div>
+  <div id="sessionCard" class="hidden"></div>
+  <div id="focus"></div>
+  <div id="workload"></div>
+  <div id="followUps"></div>
+
+  <div id="ownerCreatePanel" class="hidden">
+    <details class="card create-card" id="createDetails">
+      <summary>➕ Create a new task</summary>
+      <div class="body">
+        <div class="field"><label>Start from an idea (optional)</label><select id="starterSelect"></select></div>
+        <div class="field"><label>Task name</label><input id="newTaskName" type="text" placeholder="e.g. Write 5 new product listings"></div>
+        <div class="field"><label>Description — what's required from Sam</label>
+          <textarea id="newTaskDesc" rows="3" placeholder="Be specific so there are no surprises."></textarea>
+          <div class="help">🔒 Keep customer names and private details out of task text. Both of you can see everything here.</div></div>
+        <div class="field"><label>Done means… (optional — one item per line; she can tick them off)</label>
+          <textarea id="newTaskCriteria" rows="3" placeholder="Each listing has 5 photos&#10;Sizes and care notes included"></textarea></div>
+        <div class="field-row">
+          <div class="field"><label>Tier</label><select id="newTaskTier"></select></div>
+          <div class="field"><label>Price ($)</label><input id="newTaskPrice" type="number" step="5"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Estimated time (hours) — required</label><input id="newTaskHours" type="number" min="0.25" max="80" step="0.25">
+            <div class="help" id="capHint">This is what protects Sam's 20-hour weekly limit.</div></div>
+          <div class="field"><label>Days Sam has once started</label><input id="newTaskDuration" type="number" min="1" value="3"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Skill area</label><select id="newTaskSkill"></select></div>
+          <div class="field"><label>Available from (optional)</label><input id="newTaskFrom" type="date">
+            <div class="help">Schedule it for a later week — it can't be claimed before then.</div></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>How it reaches Sam</label>
+            <select id="newTaskMode"><option value="open">Open — Sam picks it from the pool</option><option value="assigned">Assigned directly to Sam</option></select></div>
+          <div class="field"><label>Repeat</label><select id="newTaskRepeat">
+            <option value="none">Doesn't repeat</option><option value="weekly">Every week</option>
+            <option value="biweekly">Every 2 weeks</option><option value="monthly">Every month</option></select></div>
+        </div>
+        <div class="field"><label>Reference link (optional)</label><input id="newTaskUrl" type="url" placeholder="https://…"></div>
+        <button class="btn-primary" id="createTaskBtn">Post Task</button>
+        <span id="createStatus" class="help" style="margin-left:10px;"></span>
+      </div>
+    </details>
+  </div>
+
+  <div id="filterBar" class="card filterbar hidden">
+    <div class="fb-row"><input id="fSearch" type="search" placeholder="🔍 Search tasks…"><select id="fSort"></select></div>
+    <div class="fb-chips">
+      <button class="chip-btn" id="fMine">Needs my action</button>
+      <button class="chip-btn" id="fOverdue">Overdue</button>
+      <button class="chip-btn" id="fWeek">Due this week</button>
+      <button class="chip-btn hidden" id="fClear">✕ Clear filters</button>
+    </div>
+    <details id="fMore"><summary class="help" style="cursor:pointer;">More filters (skill, tier, stage, price…)</summary>
+      <div class="fb-grid">
+        <div class="field"><label>Skill area</label><select id="fSkill"></select></div>
+        <div class="field"><label>Tier</label><select id="fTier"></select></div>
+        <div class="field"><label>Stage</label><select id="fStage"></select></div>
+        <div class="field"><label>Due</label><select id="fDue"></select></div>
+        <div class="field"><label>Min price ($)</label><input id="fMin" type="number"></div>
+        <div class="field"><label>Max price ($)</label><input id="fMax" type="number"></div>
+      </div>
+    </details>
+    <div id="fInfo" class="help"></div>
+  </div>
+
+  <div id="sections"></div>
+</div>
+<div id="toast" class="toast hidden" role="status"></div>
+
+<script>
+/* ============ constants ============ */
+const TRACKER_URL = '';   // demo: messages don't include a link
+const HARD_CAP = 20; // hours per week — can be lowered for a given week, never raised
+const MAX_TASK_HOURS = 80; // a long task can span several weeks; each week is still capped at HARD_CAP
+const TIERS = {
+  simple:  { label:'Simple',  min:15, max:25 },
+  medium:  { label:'Medium',  min:30, max:50 },
+  complex: { label:'Complex', min:60, max:100 },
+};
+const SKILLS = {
+  customers:'💬 Customer care', listings:'🏷️ Listings & sales', social:'📸 Social media', orders:'📦 Orders & stock',
+  admin:'📊 Admin & reports', research:'🔎 Research', other:'✨ Other',
+};
+const CADENCE = { weekly:'Every week', biweekly:'Every 2 weeks', monthly:'Every month' };
+const STAGES = { scheduled:'Scheduled (not yet available)', open:'Open to pick', assigned:'Assigned', progress:'In progress', review:'In review', payment:'Payment', done:'Completed', cancelled:'Cancelled' };
+const STARTERS = [
+  { name:'Answer this week\'s customer emails', tier:'simple', skill:'customers', days:2, hours:2,
+    desc:'Reply to every customer email in the shop inbox: order questions, delivery updates, returns. Use the saved reply templates where they fit, and flag anything unusual to Nora.', done:'Inbox at zero\nEvery reply is friendly and signed\nAnything unusual flagged in a note' },
+  { name:'Update the stock sheet after the weekend', tier:'simple', skill:'orders', days:1, hours:1,
+    desc:'Match the stock sheet to what sold over the weekend on Etsy and the website, and mark anything with fewer than 3 left.', done:'Every item\'s count is current\nLow-stock items highlighted' },
+  { name:'Follow up on 3 late orders with the courier', tier:'simple', skill:'orders', days:1, hours:1,
+    desc:'Contact the courier about the 3 orders marked late, get a delivery date for each, and send each customer a short update.', done:'A delivery date for each order\nEach customer updated' },
+  { name:'Schedule this week\'s Instagram posts', tier:'simple', skill:'social', days:2, hours:2,
+    desc:'Schedule 5 posts for Monday to Friday using the approved photos. Write a short caption for each in the shop\'s warm, simple tone.', done:'5 posts scheduled\nEach has a caption and hashtags\nPhotos match the shop\'s style' },
+  { name:'Reply to new Etsy reviews', tier:'simple', skill:'customers', days:1, hours:1,
+    desc:'Thank every new reviewer personally. For any review under 4 stars, draft a kind reply and leave it for Nora to approve.', done:'Every new review answered\nLow reviews drafted, not posted' },
+  { name:'Write 5 new product listings', tier:'medium', skill:'listings', days:4, hours:4,
+    desc:'Write titles, descriptions and tags for 5 new products using the product notes. Include size, materials and care instructions.', done:'5 listings ready to publish\nSize, materials and care in each\n13 tags per listing' },
+  { name:'Photograph-to-listing: edit and upload 10 photos', tier:'medium', skill:'listings', days:3, hours:4,
+    desc:'Edit 10 product photos (crop, brighten, consistent background) and add them to the right listings.', done:'10 photos edited\nEach added to the right listing\nSame look across all photos' },
+  { name:'Monthly sales summary in plain language', tier:'medium', skill:'admin', days:3, hours:3,
+    desc:'Summarize last month\'s sales on one page: best sellers, slow sellers, returns, and one thing worth trying next month.', done:'One page, plain language\nBest and slow sellers listed\nOne suggestion for next month' },
+  { name:'Chase supplier for the spring order', tier:'medium', skill:'orders', days:3, hours:3,
+    desc:'Get a confirmed ship date for the spring order from the ceramics supplier, save their reply, and note any delays.', done:'Ship date confirmed in writing\nTracking details saved\nNora told of any delays' },
+  { name:'Set up the holiday sale (discount codes, banners, listings)', tier:'complex', skill:'listings', days:7, hours:10,
+    desc:'Prepare the holiday sale: create the discount codes, update the homepage banner, and tag the sale items on Etsy and the website.', done:'3 discount codes created and tested\nHomepage banner updated\n20 sale items tagged\nShort note of what\'s live' },
+  { name:'Research 5 competitor shops and write 3 recommendations', tier:'complex', skill:'research', days:7, hours:8,
+    desc:'Look at 5 similar home-décor shops: prices, photos, shipping, and how they talk to customers. Write 1–2 pages with 3 recommendations in your own judgment.', done:'5 shops reviewed\n1–2 page summary\n3 recommendations' },
+  { name:'Build a customer FAQ page from past emails', tier:'complex', skill:'customers', days:7, hours:8,
+    desc:'Collect the questions customers ask most often, write clear answers, and publish them as an FAQ page on the website.', done:'At least 15 questions, grouped by topic\nAnswers checked against current policies\nPage published on the website' },
+];
+const OPEN_STATES = ['open','assigned_pending','claimed','needs_revision','submitted'];
+
+/* ============ state ============ */
+let db = null;
+let amOwner = false, previewMode = false, viewerOwner = false;
+let allTasks = [], allRules = [];
+let capSettings = { weeks:{} };
+let reminderLinks = { wins:'', weekly:'', monthly:'', inspiration:'' };
+let remStarted = false;
+let firstLoad = true, tasksLoaded = false, rulesLoaded = false, recurringRan = false;
+let showAllDone = false;
+let focusId = null;
+const openHistory = new Set(), openNotes = new Set();
+const filters = { q:'', skill:'', tier:'', min:'', max:'', due:'', stage:'', mine:false, sort:'default' };
+
+/* ============ tiny DOM + date helpers ============ */
+function el(tag, props, ...children){
+  const n = document.createElement(tag);
+  if(props){
+    for(const k in props){
+      const v = props[k];
+      if(v === undefined || v === null) continue;
+      if(k === 'class') n.className = v;
+      else if(k === 'text') n.textContent = v;
+      else if(k === 'style') n.style.cssText = v;
+      else if(k.slice(0,2) === 'on') n[k] = v;
+      else n.setAttribute(k, v);
+    }
+  }
+  children.flat().forEach(c => { if(c === null || c === undefined || c === false) return; n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+  return n;
+}
+const pad = n => String(n).padStart(2,'0');
+function localISO(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+function todayISO(){ return localISO(new Date()); }
+function parseLocal(iso){ const p = String(iso).slice(0,10).split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); }
+function addDaysISO(iso, n){ const d = parseLocal(iso); d.setDate(d.getDate() + n); return localISO(d); }
+function weekStartISO(iso){ const d = parseLocal(iso); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return localISO(d); } // weeks run Monday–Sunday
+function shortDate(iso){ return parseLocal(iso).toLocaleDateString('en-US', { month:'short', day:'numeric' }); }
+function weekLabel(ws){ return shortDate(ws) + ' – ' + shortDate(addDaysISO(ws, 6)); }
+// Monday–Friday are working days.
+function addBusinessDays(iso, n){
+  const d = parseLocal(iso); let added = 0;
+  while(added < n){ d.setDate(d.getDate() + 1); const w = d.getDay(); if(w !== 0 && w !== 6) added++; }
+  return localISO(d);
+}
+function advanceDate(iso, cadence){
+  const d = parseLocal(iso);
+  if(cadence === 'weekly') d.setDate(d.getDate() + 7);
+  else if(cadence === 'biweekly') d.setDate(d.getDate() + 14);
+  else { const day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth() + 1); const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); d.setDate(Math.min(day, last)); }
+  return localISO(d);
+}
+function fmtDate(x){
+  if(!x) return '—';
+  const d = String(x).length > 10 ? new Date(x) : parseLocal(x);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+function monthLabel(m){ const p = m.split('-').map(Number); return new Date(p[0], p[1]-1, 1).toLocaleDateString('en-US', { month:'long', year:'numeric' }); }
+function fmtMoney(n){ return '$' + Number(n || 0); }
+function fmtDur(min){
+  min = Math.round(min);
+  if(min <= 0) return '0m';
+  const h = Math.floor(min / 60), m = min % 60;
+  return h && m ? h + 'h ' + m + 'm' : h ? h + 'h' : m + 'm';
+}
+const daysEn = n => n === 1 ? '1 day' : n + ' days';
+function priceOf(t){ return (t.agreedPrice !== undefined ? t.agreedPrice : t.suggestedPrice) || 0; }
+function daysSince(iso){ return iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 86400000) : 0; }
+function safeUrl(u){ return typeof u === 'string' && /^https?:\/\//i.test(u) ? u : null; }
+function midPrice(tier){ const r = TIERS[tier]; return Math.round((r.min + r.max) / 2 / 5) * 5; }
+function clampPrice(tier, v){ const r = TIERS[tier]; return Math.min(r.max, Math.max(r.min, Number(v) || r.min)); }
+function pastDeadline(iso){ return !!iso && Date.now() > parseLocal(iso).getTime() + 86399000; }
+function formatCountdown(iso){
+  if(!iso) return '';
+  const diff = parseLocal(iso).getTime() + 86399000 - Date.now();
+  if(diff <= 0){
+    const h = Math.floor(-diff / 3600000);
+    return h < 24 ? '⏰ Past deadline by ' + h + 'h' : '⏰ Past deadline by ' + Math.floor(h / 24) + 'd';
+  }
+  const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000);
+  if(d > 0) return '⏳ ' + d + 'd ' + h + 'h left';
+  return '⏳ ' + h + 'h ' + Math.floor((diff % 3600000) / 60000) + 'm left';
+}
+function refreshCountdowns(){
+  document.querySelectorAll('[data-deadline]').forEach(n => {
+    const iso = n.getAttribute('data-deadline');
+    n.textContent = formatCountdown(iso);
+    n.classList.toggle('flag', pastDeadline(iso));
+  });
+}
+function actor(by){ return viewerOwner ? (by === 'owner' ? 'You' : 'Sam') : (by === 'owner' ? 'Nora' : 'You'); }
+function dueDateOf(t){
+  if(t.status === 'claimed' || t.status === 'needs_revision') return t.herDeadline || null;
+  if(t.status === 'approved' || t.status === 'payment_sent') return t.paymentDueDate || null;
+  return null;
+}
+function isScheduled(t){ return (t.status === 'open' || t.status === 'assigned_pending') && !!t.availableFrom && t.availableFrom > todayISO(); }
+function isBlocked(t){ return !!(t.blocked && t.blocked.active); }
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+const spentDate = t => t.paymentSentAt || t.paidAt;
+
+/* ============ time logging (stored in minutes; older tasks stored decimal hours) ============ */
+function storedEntries(t){   // what is actually saved on the task (older tasks stored decimal hours)
+  if(Array.isArray(t.timeLog) && t.timeLog.length) return t.timeLog;
+  if(t.actualHours > 0) return [{ at:t.submittedAt || t.createdAt, minutes:Math.round(t.actualHours * 60) }];
+  return [];
+}
+function entriesOf(t){ return storedEntries(t).concat(liveEntriesFor(t)); }   // plus time from her running session, read-only
+const loggedMin = t => entriesOf(t).reduce((s, e) => s + (Number(e.minutes) || 0), 0);
+const estMin = t => Math.round((Number(t.estimatedHours) || 0) * 60);
+const rateOf = t => { const m = loggedMin(t); return m ? Math.round(priceOf(t) / (m / 60)) : 0; };
+function entryWeek(e){ return weekStartISO(localISO(new Date(e.at))); }
+
+/* ============ weekly hours: the hard limit ============ */
+function capFor(week){
+  const o = (capSettings.weeks || {})[week];
+  return o && o.hours !== undefined ? Math.min(HARD_CAP, Math.max(0, Number(o.hours))) : HARD_CAP;
+}
+function weekLoggedMin(week){
+  return allTasks.reduce((s, t) => s + entriesOf(t).filter(e => entryWeek(e) === week).reduce((a, e) => a + (Number(e.minutes) || 0), 0), 0);
+}
+// Hours she has already logged count in the week she worked them. Hours still to do are spread across the weeks the task runs,
+// in proportion to the number of days of the task that fall in each Monday–Sunday week. Logging time re-spreads what's left.
+function spreadMinutes(mins, startISO, endISO){
+  const per = {}; let n = 0, d = startISO, guard = 0;
+  while(d <= endISO && guard++ < 800){ const w = weekStartISO(d); per[w] = (per[w] || 0) + 1; n++; d = addDaysISO(d, 1); }
+  if(!n){ per[weekStartISO(startISO)] = 1; n = 1; }
+  const out = {}; Object.keys(per).forEach(w => { out[w] = mins * per[w] / n; });
+  return out;
+}
+function plannedShares(t){
+  const est = estMin(t); if(!est) return {};
+  const remaining = Math.max(0, est - loggedMin(t)); if(!remaining) return {};
+  const today = todayISO();
+  if(t.status === 'claimed' || t.status === 'needs_revision') return spreadMinutes(remaining, today, (t.herDeadline && t.herDeadline > today) ? t.herDeadline : today);
+  if(t.status === 'assigned_pending'){
+    const start = (t.availableFrom && t.availableFrom > today) ? t.availableFrom : today;
+    return spreadMinutes(remaining, start, addDaysISO(start, Math.max(1, t.durationDays || 3) - 1));
+  }
+  return {};
+}
+const weekPlannedMin = (week, excludeId) => allTasks.reduce((s, t) => t.id === excludeId ? s : s + (plannedShares(t)[week] || 0), 0);
+const weekUsedMin = (week, excludeId) => weekLoggedMin(week) + weekPlannedMin(week, excludeId);
+function capReason(week){ const o = (capSettings.weeks || {})[week]; return o && o.reason ? o.reason : ''; }
+
+function assignBlockMessage(hours, startISO, durationDays, excludeId){
+  const need = Math.round((Number(hours) || 0) * 60);
+  const today = todayISO(), start = startISO && startISO > today ? startISO : today;
+  const dur = Math.max(1, Number(durationDays) || 3);
+  const shares = need ? spreadMinutes(need, start, addDaysISO(start, dur - 1)) : {};
+  const weeks = Object.keys(shares).sort();
+  const w0 = weekStartISO(start), cap0 = capFor(w0), used0 = weekUsedMin(w0, excludeId);
+  if(cap0 === 0) return 'She has marked the week of ' + weekLabel(w0) + ' as time off, so nothing can be assigned for it. Set a later "Available from" date.';
+  if(used0 >= cap0 * 60 - 0.5) return 'She\'s already at her limit for the week of ' + weekLabel(w0) + ' (' + fmtDur(used0) + ' of ' + cap0 + 'h). Nothing more can be assigned for that week — set "Available from" to a later week.';
+  for(const w of weeks){
+    const cap = capFor(w), used = weekUsedMin(w, excludeId), share = shares[w];
+    if(cap === 0) return 'She has marked the week of ' + weekLabel(w) + ' as time off, and this task runs into it. Set a later "Available from" date or shorten the task.';
+    if(used + share > cap * 60 + 0.5){
+      return 'That would take her past her limit for the week of ' + weekLabel(w) + ': she has ' + fmtDur(Math.max(0, cap * 60 - used)) + ' left there and this task needs about ' + fmtDur(share) + ' of it.' +
+        (weeks.length > 1 ? ' (The task runs across ' + weeks.length + ' weeks, so its hours are spread over them.)' : '') + ' Shorten the task, split it, or schedule it for a later week.';
+    }
+  }
+  return null;
+}
+function claimBlockMessage(t, deadlineISO){
+  const today = todayISO(), cw = weekStartISO(today), ccap = capFor(cw), usedNow = weekUsedMin(cw, t.id);
+  if(ccap === 0) return 'You\'ve marked this week as time off — new tasks stay closed until it\'s over. Rest well.';
+  if(usedNow >= ccap * 60 - 0.5) return 'You\'ve reached your limit for this week (' + fmtDur(usedNow) + ' of ' + ccap + 'h). New tasks open again on Monday — that\'s exactly what the limit is for.';
+  const need = Math.max(0, estMin(t) - loggedMin(t));
+  if(deadlineISO && need){
+    const shares = spreadMinutes(need, today, deadlineISO > today ? deadlineISO : today), weeks = Object.keys(shares).sort();
+    for(const w of weeks){
+      const cap = capFor(w), used = weekUsedMin(w, t.id), share = shares[w];
+      if(cap === 0) return 'The week of ' + weekLabel(w) + ' is marked as time off, and this task would run into it. Pick a different deadline.';
+      if(used + share > cap * 60 + 0.5){
+        return 'With that deadline, about ' + fmtDur(share) + ' of this task would land in the week of ' + weekLabel(w) + ', where you\'d have ' + fmtDur(Math.max(0, cap * 60 - used)) + ' left.' +
+          (weeks.length > 1 ? ' (Its hours are spread across ' + weeks.length + ' weeks.)' : '') + ' Pick a later deadline so the hours spread further, or ask Nora to shorten it or schedule it for another week.';
+      }
+    }
+  }
+  return null;
+}
+
+/* ============ toast, dialogs, clipboard ============ */
+function toast(msg, isError, action){
+  const t = document.getElementById('toast');
+  t.replaceChildren(el('span', { text:msg }));
+  if(action) t.appendChild(el('button', { text:action.label, onclick: () => { t.classList.add('hidden'); action.fn(); } }));
+  t.classList.remove('hidden'); t.classList.toggle('error', !!isError);
+  clearTimeout(toast._h); toast._h = setTimeout(() => t.classList.add('hidden'), isError ? 6500 : (action ? 9000 : 2800));
+}
+function openModal(build){
+  return new Promise(resolve => {
+    const overlay = el('div', { class:'modal-overlay' });
+    const box = el('div', { class:'modal-box', role:'dialog' });
+    const onKey = e => { if(e.key === 'Escape') close(null); };
+    function close(v){ overlay.remove(); document.removeEventListener('keydown', onKey); resolve(v); }
+    document.addEventListener('keydown', onKey);
+    overlay.addEventListener('mousedown', e => { if(e.target === overlay) close(null); });
+    box.appendChild(build(close));
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    const first = box.querySelector('input, textarea, select');
+    if(first) first.focus();
+  });
+}
+function askFields(title, fields, opts){
+  opts = opts || {};
+  return openModal(close => {
+    const wrap = el('div');
+    wrap.appendChild(el('div', { class:'modal-title', text:title }));
+    if(opts.intro) wrap.appendChild(el('p', { class:'modal-intro', text:opts.intro }));
+    const inputs = {};
+    fields.forEach(f => {
+      const row = el('div', { class:'field' });
+      row.appendChild(el('label', { text:f.label }));
+      let inp;
+      if(f.type === 'textarea') inp = el('textarea', { rows: f.rows || 3 });
+      else if(f.type === 'select'){
+        inp = el('select');
+        f.options.forEach(o => { const op = el('option', { value:o.value, text:o.label }); if(o.value === f.value) op.selected = true; inp.appendChild(op); });
+      } else inp = el('input', { type: f.type || 'text' });
+      if(f.type !== 'select' && f.value !== undefined && f.value !== null) inp.value = f.value;
+      if(f.min !== undefined) inp.min = f.min;
+      if(f.max !== undefined) inp.max = f.max;
+      if(f.step) inp.step = f.step;
+      if(f.placeholder) inp.placeholder = f.placeholder;
+      inp.setAttribute('data-key', f.key);
+      row.appendChild(inp);
+      if(f.help) row.appendChild(el('div', { class:'help', text:f.help }));
+      inputs[f.key] = inp; wrap.appendChild(row);
+    });
+    const err = el('div', { class:'modal-error' });
+    wrap.appendChild(err);
+    const ok = el('button', { class: opts.danger ? 'btn-danger' : 'btn-primary', text: opts.confirmText || 'Save' });
+    ok.onclick = () => {
+      const out = {};
+      for(const f of fields){
+        let v = inputs[f.key].value;
+        if(typeof v === 'string') v = v.trim();
+        if(f.required && !v){ err.textContent = f.label + ' is required.'; return; }
+        if(f.type === 'number' && v !== ''){
+          v = Number(v);
+          if(isNaN(v)){ err.textContent = f.label + ' must be a number.'; return; }
+          if(f.min !== undefined && v < f.min){ err.textContent = f.label + ' must be at least ' + f.min + '.'; return; }
+          if(f.max !== undefined && v > f.max){ err.textContent = f.label + ' must be at most ' + f.max + '.'; return; }
+        }
+        if(f.type === 'date' && v){
+          if(f.min && v < f.min){ err.textContent = f.label + ' can\'t be earlier than ' + fmtDate(f.min) + '.'; return; }
+          if(f.max && v > f.max){ err.textContent = f.label + ' can\'t be later than ' + fmtDate(f.max) + '.'; return; }
+        }
+        if(f.type === 'url' && v && !safeUrl(v)){ err.textContent = 'Links should start with http:// or https://'; return; }
+        out[f.key] = v;
+      }
+      if(opts.validate){ const m = opts.validate(out); if(m){ err.textContent = m; return; } }
+      close(out);
+    };
+    wrap.appendChild(el('div', { class:'actions' }, ok, el('button', { class:'btn-ghost', text:'Cancel', onclick: () => close(null) })));
+    return wrap;
+  });
+}
+function confirmDialog(title, message, confirmText, danger){
+  return openModal(close => {
+    const ok = el('button', { class: danger ? 'btn-danger' : 'btn-primary', text: confirmText || 'Confirm', onclick: () => close(true) });
+    const cancel = el('button', { class:'btn-ghost', text:'Not yet', onclick: () => close(null) });
+    return el('div', {}, el('div', { class:'modal-title', text:title }), el('p', { class:'modal-intro', text:message }), el('div', { class:'actions' }, ok, cancel));
+  }).then(v => v === true);
+}
+function blockDialog(title, message){
+  return openModal(close => el('div', {}, el('div', { class:'modal-title', text:title }), el('p', { class:'modal-intro', text:message }),
+    el('div', { class:'actions' }, el('button', { class:'btn-primary', text:'OK', onclick: () => close(true) }))));
+}
+async function copyText(s){
+  try{ await navigator.clipboard.writeText(s); return true; }catch(e){}
+  try{
+    const ta = el('textarea', { style:'position:fixed; opacity:0; top:0;' }); ta.value = s;
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok = document.execCommand && document.execCommand('copy'); ta.remove();
+    return !!ok;
+  }catch(e){ return false; }
+}
+async function copyWithToast(s){
+  const ok = await copyText(s);
+  toast(ok ? 'Copied ✓' : 'Couldn\'t copy automatically — select the text and copy it manually.', !ok);
+}
+function showTextModal(title, intro, value){
+  return openModal(close => {
+    const ta = el('textarea', { rows:12, style:'font-size:12.5px; line-height:1.5;' }); ta.value = value; ta.setAttribute('data-key', 'text');
+    return el('div', {}, el('div', { class:'modal-title', text:title }), intro ? el('p', { class:'modal-intro', text:intro }) : null, ta,
+      el('div', { class:'actions' }, el('button', { class:'btn-primary', text:'Copy', onclick: () => copyWithToast(ta.value) }), el('button', { class:'btn-ghost', text:'Close', onclick: () => close(null) })));
+  });
+}
+
+/* ============ WhatsApp messages ============ */
+function dateMsg(x){
+  if(!x) return '—';
+  const d = String(x).length > 10 ? new Date(x) : parseLocal(x);
+  return d.toLocaleDateString('en-US', { day:'numeric', month:'long' });
+}
+function buildMessage(t, kind){
+  const n = t.name, p = fmtMoney(priceOf(t)), neg = t.negotiation || {}, ex = t.extension || {}, D = dateMsg;
+  const lastC = (t.comments || []).slice(-1)[0] || {};
+  const est = estMin(t) ? 'roughly ' + fmtDur(estMin(t)) + ' of work, ' : '';
+  const opens = isScheduled(t) ? ' It opens for claiming on ' + D(t.availableFrom) + '.' : '';
+  const T = {
+    posted: `Hi! I posted a new task for you: “${n}” — ${p}, ${est}${daysEn(t.durationDays)} once you start.${opens} Have a look and claim it if you like. You can also propose a different price in the tracker.`,
+    assigned: `Hi! I assigned you a task: “${n}” — ${p}, ${est}${daysEn(t.durationDays)} once you start.${opens} Please open the tracker, accept it and choose the deadline that works for you. Tell me if you have questions or want to discuss the price.`,
+    changes: `I reviewed “${n}” — thank you! A few changes are needed: ${t.revisionNote || ''}. New deadline: ${D(t.herDeadline)}. Details are in the tracker.`,
+    approved: `“${n}” is approved — great work! Payment (${p}) is planned for ${D(t.paymentDueDate)}. I'll message you when I send it, and you'll confirm receipt in the tracker.`,
+    payment_sent: `I sent ${p} for “${n}”${t.paymentNote ? ' (' + t.paymentNote + ')' : ''}. Please confirm in the tracker once it arrives — or tell me if it hasn't and I'll check.`,
+    counter: `About “${n}”: I replied to your price proposal with a counter of ${fmtMoney(neg.counterPrice)}. Have a look in the tracker and tell me what you think.`,
+    ext_ok: `I approved more time on “${n}” — your new deadline is ${D(t.herDeadline)}. Take the time you need.`,
+    ext_no: `About your request for more time on “${n}”: the deadline stays ${D(t.herDeadline)}${ex.note ? ' (' + ex.note + ')' : ''}. If anything else is going on, tell me.`,
+    deadline_moved: `I moved the deadline for “${n}” to ${D(t.herDeadline)}.`,
+    unblocked: `I answered your blocker on “${n}” — thank you for flagging it. To make up for the wait, I moved your deadline to ${D(t.herDeadline)}.`,
+    cancelled: `We're cancelling “${n}”: ${t.cancelReason || ''}. If you'd already started, we'll agree on fair payment for the work done.`,
+    nudge: `Just checking in on “${n}” — the deadline is ${D(t.herDeadline)}. No pressure. If you need more time, ask in the tracker.`,
+    claimed: `I took “${n}” and set my deadline to ${D(t.herDeadline)}.`,
+    submitted: `I submitted “${n}” — it's ready for your review in the tracker.`,
+    proposal: `I proposed ${fmtMoney(neg.proposedPrice)} for “${n}”${neg.reason ? ' (' + neg.reason + ')' : ''}. Could you take a look in the tracker?`,
+    ext_req: `Could I have more time on “${n}”? I proposed a new deadline of ${D(ex.date)}${ex.reason ? ' — ' + ex.reason : ''}.`,
+    blocked: `I'm blocked on “${n}”: ${t.blocked && t.blocked.reason ? t.blocked.reason : ''}. I can't continue until I hear from you, so my deadline is paused in the tracker.`,
+    deferred: `I moved “${n}” to ${D(t.availableFrom)} so I can keep this week within my limit. Let me know if that's a problem.`,
+    received: `I received the payment for “${n}” — thank you!`,
+    not_received: `The payment for “${n}” hasn't reached me yet — could you check?`,
+    comment: `I left a note on “${n}” in the tracker: ${lastC.text || ''}`,
+  };
+  return T[kind] ? T[kind] + (TRACKER_URL ? '\n\n' + TRACKER_URL : '') : '';
+}
+function suggestKind(t){
+  const V = viewerOwner, neg = t.negotiation || {};
+  if(V){
+    if(t.status === 'open') return 'posted';
+    if(t.status === 'assigned_pending') return neg.status === 'countered' ? 'counter' : 'assigned';
+    if(t.status === 'claimed') return 'nudge';
+    if(t.status === 'needs_revision') return 'changes';
+    if(t.status === 'approved') return 'approved';
+    if(t.status === 'payment_sent') return 'payment_sent';
+    if(t.status === 'cancelled') return 'cancelled';
+    return null;
+  }
+  if(['open','assigned_pending'].includes(t.status)) return neg.status === 'pending' ? 'proposal' : null;
+  if(t.status === 'claimed') return isBlocked(t) ? 'blocked' : (pastDeadline(t.herDeadline) ? 'ext_req' : 'claimed');
+  if(t.status === 'submitted') return 'submitted';
+  if(t.status === 'approved' && t.paymentIssue) return 'not_received';
+  if(t.status === 'payment_sent') return 'received';
+  return null;
+}
+function openNotify(t, kind){
+  if(!kind) return;
+  return openModal(close => {
+    const ta = el('textarea', { rows:9, style:'font-size:13.5px; line-height:1.6;' }); ta.setAttribute('data-key', 'text');
+    ta.value = buildMessage(t, kind);
+    const wa = el('a', { class:'btn-link', target:'_blank', rel:'noopener noreferrer', text:'Open WhatsApp' });
+    wa.onclick = () => { wa.href = 'https://wa.me/?text=' + encodeURIComponent(ta.value); };
+    return el('div', {}, el('div', { class:'modal-title', text: viewerOwner ? 'Message Sam' : 'Message Nora' }),
+      el('p', { class:'modal-intro', text:'Edit if you like, then send it on WhatsApp. (Nothing is sent automatically.)' }), ta,
+      el('div', { class:'actions' }, el('button', { class:'btn-primary', text:'Copy message', onclick: () => copyWithToast(ta.value) }), wa,
+        el('button', { class:'btn-ghost', text:'Close', onclick: () => close(null) })));
+  });
+}
+function offerNotify(t, kind, msg){
+  toast(msg || 'Saved ✓', false, kind ? { label: (amOwner ? '📲 Let Sam know' : '📲 Tell Nora'), fn: () => openNotify(t, kind) } : null);
+}
+
+/* ============ writes (all through updateTask so every change is logged for both sides) ============ */
+async function updateTask(t, fields, logText){
+  if(!db){ toast('Shared storage isn\'t available right now.', true); return false; }
+  const payload = Object.assign({}, fields);
+  if(logText){
+    payload.history = (t.history || []).concat([{ at:new Date().toISOString(), by: amOwner ? 'owner' : 'contributor', text:logText }]);
+  }
+  try{ await db.doc('tasks/' + t.id).update(payload); }
+  catch(e){ toast('Couldn\'t save that. Your browser may be blocking storage for this page.', true); return false; }
+  Object.assign(t, payload); render();
+  return true;
+}
+const skillOptions = () => Object.keys(SKILLS).map(k => ({ value:k, label:SKILLS[k] }));
+const tierOptions = () => Object.keys(TIERS).map(k => ({ value:k, label:TIERS[k].label + ' ($' + TIERS[k].min + '–$' + TIERS[k].max + ')' }));
+function parseCriteria(txt, prev){
+  const old = {}; (prev || []).forEach(c => { old[c.text] = !!c.done; });
+  return String(txt || '').split('\n').map(s => s.trim()).filter(Boolean).map(s => ({ text:s, done: !!old[s] }));
+}
+
+/* ---- owner actions ---- */
+async function editTask(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const locked = ['approved','payment_sent','paid'].includes(t.status);
+  const started = ['claimed','needs_revision','submitted'].includes(t.status);
+  const notStarted = ['open','assigned_pending'].includes(t.status);
+  const price = priceOf(t), today = todayISO();
+  const fields = [
+    { key:'name', label:'Task name', type:'text', value:t.name, required:true },
+    { key:'description', label:'Description', type:'textarea', value:t.description, rows:4, required:true, help:'🔒 Keep client names and private details out of this text.' },
+    { key:'criteria', label:'Done means… (one per line)', type:'textarea', rows:3, value:(t.criteria || []).map(c => c.text).join('\n') },
+    { key:'resourceUrl', label:'Reference link (optional)', type:'url', value:t.resourceUrl || '' },
+    { key:'skill', label:'Skill area', type:'select', value:t.skill || 'other', options:skillOptions() },
+    { key:'estimatedHours', label:'Estimated time (hours)' + (locked ? '' : ' — required'), type:'number', value:t.estimatedHours || '', min:0.25, max:MAX_TASK_HOURS, step:0.25, required:!locked, help:'Long tasks are spread across the weeks they run.' },
+  ];
+  if(!locked){
+    fields.push({ key:'tier', label:'Tier', type:'select', value:t.tier, options:tierOptions() });
+    fields.push({ key:'price', label:'Price ($)', type:'number', value:price, step:5 });
+    fields.push({ key:'durationDays', label:'Days Sam has once started', type:'number', value:t.durationDays, min:1 });
+  }
+  if(notStarted){
+    fields.push({ key:'mode', label:'How it reaches Sam', type:'select', value:t.status === 'open' ? 'open' : 'assigned',
+      options:[{ value:'open', label:'Open — Sam picks it from the pool' }, { value:'assigned', label:'Assigned directly to Sam' }] });
+    fields.push({ key:'availableFrom', label:'Available from (optional)', type:'date', value:t.availableFrom || '', min:(t.availableFrom && t.availableFrom < today) ? undefined : today });
+  }
+  const intro = locked ? 'Price and timing are locked once a task is approved, so what she agreed to can\'t change underneath her.'
+    : started ? 'She\'s already working on this. Any change to price or duration is logged and visible to her.' : null;
+  const out = await askFields('Edit task', fields, { confirmText:'Save changes', intro });
+  if(!out) return;
+
+  const newHours = out.estimatedHours === '' ? null : out.estimatedHours;
+  const upd = { name:out.name, description:out.description, resourceUrl:out.resourceUrl || '', skill:out.skill, estimatedHours:newHours, criteria:parseCriteria(out.criteria, t.criteria) };
+  const changes = [];
+  if(out.name !== t.name || out.description !== t.description) changes.push('details updated');
+  if(out.criteria !== (t.criteria || []).map(c => c.text).join('\n')) changes.push('“done means” list updated');
+  if(newHours !== (t.estimatedHours || null)) changes.push('time estimate ' + (t.estimatedHours ? fmtDur(estMin(t)) : '—') + ' → ' + (newHours ? fmtDur(newHours * 60) : '—'));
+  let termsChanged = false;
+  if(!locked){
+    const tier = out.tier || t.tier;
+    const newPrice = clampPrice(tier, out.price === '' ? price : out.price);
+    const dur = Number(out.durationDays) || t.durationDays;
+    if(newPrice !== price){ changes.push('price $' + price + ' → $' + newPrice); upd.agreedPrice = newPrice; upd.suggestedPrice = newPrice; upd.negotiation = { status:'none' }; termsChanged = true; }
+    if(tier !== t.tier){ changes.push('tier ' + TIERS[t.tier].label + ' → ' + TIERS[tier].label); upd.tier = tier; }
+    if(dur !== t.durationDays){ changes.push('duration ' + t.durationDays + ' → ' + dur + ' days'); upd.durationDays = dur; termsChanged = true; }
+  }
+  let newStatus = t.status;
+  if(notStarted){
+    if(out.mode){ const ns = out.mode === 'open' ? 'open' : 'assigned_pending'; if(ns !== t.status){ newStatus = ns; upd.status = ns; upd.mode = out.mode; changes.push(out.mode === 'open' ? 'moved to the open pool' : 'assigned directly'); } }
+    if((out.availableFrom || '') !== (t.availableFrom || '')){ upd.availableFrom = out.availableFrom || null; changes.push(out.availableFrom ? 'available from ' + fmtDate(out.availableFrom) : 'available immediately'); }
+    if(newStatus === 'assigned_pending' && newHours){
+      const msg = assignBlockMessage(newHours, out.availableFrom || null, upd.durationDays || t.durationDays, t.id);
+      if(msg){ await blockDialog('Sam\'s weekly limit', msg); return; }
+    }
+  }
+  if(!changes.length && (out.resourceUrl || '') === (t.resourceUrl || '') && out.skill === (t.skill || 'other')){ toast('Nothing changed.'); return; }
+  if(started && termsChanged){
+    const go = await confirmDialog('She\'s already on this', 'Changing the price or duration after she started will be logged and shown to her. Continue?', 'Yes, save changes');
+    if(!go) return;
+  }
+  const ok = await updateTask(t, upd, 'edited the task' + (changes.length ? ': ' + changes.join(', ') : ''));
+  if(ok) toast('Task updated ✓');
+}
+async function deleteTask(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const go = await confirmDialog('Delete this task?', '“' + t.name + '” will be removed for both of you. This can\'t be undone.', 'Delete', true);
+  if(!go) return;
+  try{ await db.doc('tasks/' + t.id).delete(); }catch(e){ toast('Couldn\'t delete that task.', true); return; }
+  allTasks = allTasks.filter(x => x.id !== t.id); render(); toast('Task deleted');
+}
+async function cancelTask(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const out = await askFields('Cancel this task?', [
+    { key:'reason', label:'Reason (she will see this)', type:'textarea', rows:3, required:true, placeholder:'e.g. Priorities changed — this is on me, not you.' },
+  ], { danger:true, confirmText:'Cancel task',
+    intro:'The record stays visible to both of you. If she had already done real work, her agreement covers a fair partial payment — worth settling with her directly.' });
+  if(!out) return;
+  const ok = await updateTask(t, { status:'cancelled', cancelReason:out.reason, cancelledAt:new Date().toISOString(), cancelledFromStatus:t.status }, 'cancelled the task: ' + out.reason);
+  if(ok) offerNotify(t, 'cancelled', 'Task cancelled');
+}
+async function respondToProposal(t, decision){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const neg = t.negotiation || {};
+  if(decision === 'accept'){ const ok = await updateTask(t, { agreedPrice:neg.proposedPrice, suggestedPrice:neg.proposedPrice, negotiation:{ status:'accepted' } }, 'accepted the price of ' + fmtMoney(neg.proposedPrice)); if(ok) offerNotify(t, null, 'Price accepted ✓'); return; }
+  if(decision === 'decline'){ const ok = await updateTask(t, { negotiation:{ status:'declined' } }, 'kept the original price of ' + fmtMoney(t.agreedPrice)); if(ok) offerNotify(t, null, 'Original price kept'); return; }
+  const r = TIERS[t.tier];
+  const out = await askFields('Counter-offer', [
+    { key:'price', label:'Your counter ($)', type:'number', value:t.agreedPrice, min:r.min, max:r.max, step:5, required:true, help:'Range for a ' + r.label + ' task: $' + r.min + '–$' + r.max + '.' },
+    { key:'note', label:'A short note (optional)', type:'textarea', rows:2 },
+  ], { confirmText:'Send counter' });
+  if(!out) return;
+  const ok = await updateTask(t, { negotiation:{ status:'countered', proposedPrice:neg.proposedPrice, reason:neg.reason || '', counterPrice:out.price, counterNote:out.note || '' } }, 'countered with ' + fmtMoney(out.price));
+  if(ok) offerNotify(t, 'counter', 'Counter sent');
+}
+async function approveTask(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const out = await askFields('Approve this work', [
+    { key:'due', label:'Payment date', type:'date', value:addBusinessDays(todayISO(), 7), min:todayISO(), required:true,
+      help:'Defaults to 7 business days (Mon–Fri) as in the agreement. Change it for a holiday or your cash flow.' },
+    { key:'good', label:'What worked well? (optional — she will see this)', type:'textarea', rows:2 },
+    { key:'grow', label:'One thing to grow into next time (optional)', type:'text' },
+  ], { confirmText:'Approve' });
+  if(!out) return;
+  const ok = await updateTask(t, { status:'approved', approvedAt:new Date().toISOString(), paymentDueDate:out.due, paymentIssue:false, feedbackGood:out.good || '', feedbackGrow:out.grow || '' },
+    'approved the work — payment due ' + fmtDate(out.due) + (out.good || out.grow ? ' (with feedback)' : ''));
+  if(ok) offerNotify(t, 'approved', 'Approved ✓');
+}
+async function requestChanges(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const out = await askFields('Ask for changes', [
+    { key:'note', label:'What needs to change?', type:'textarea', rows:3, required:true },
+    { key:'deadline', label:'New deadline for the edits', type:'date', value:addDaysISO(todayISO(), 2), min:todayISO(), required:true,
+      help:'Her original deadline has passed by now — give her a fresh, fair date.' },
+  ], { confirmText:'Send back to Sam' });
+  if(!out) return;
+  const ok = await updateTask(t, { status:'needs_revision', revisionNote:out.note, herDeadline:out.deadline, revisionRequestedAt:new Date().toISOString() },
+    'asked for changes: ' + out.note + ' (new deadline ' + fmtDate(out.deadline) + ')');
+  if(ok) offerNotify(t, 'changes', 'Sent back to Sam');
+}
+async function ownerAdjustDeadline(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const out = await askFields('Adjust Sam\'s deadline', [
+    { key:'date', label:'New deadline', type:'date', value:t.herDeadline || todayISO(), min:todayISO(), required:true },
+    { key:'reason', label:'Reason (she will see this)', type:'text', placeholder:'e.g. My review took longer than planned' },
+  ], { confirmText:'Update deadline', intro:'Use this when something on your side (or life) affects her timeline.' });
+  if(!out) return;
+  const old = t.herDeadline;
+  const ok = await updateTask(t, { herDeadline:out.date }, 'moved the deadline from ' + fmtDate(old) + ' to ' + fmtDate(out.date) + (out.reason ? ' (' + out.reason + ')' : ''));
+  if(ok) offerNotify(t, 'deadline_moved', 'Deadline updated');
+}
+async function unblockTask(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const waited = Math.max(0, daysSince(t.blocked && t.blocked.at));
+  const suggested = addDaysISO(t.herDeadline || todayISO(), waited);
+  const out = await askFields('Unblock Sam', [
+    { key:'date', label:'Her new deadline', type:'date', value:suggested < todayISO() ? todayISO() : suggested, min:todayISO(), required:true,
+      help:'She was blocked for ' + (waited ? daysEn(waited) : 'less than a day') + ', so her deadline moves by the same amount. Change it if you like.' },
+    { key:'note', label:'Your answer (optional — she will see this)', type:'textarea', rows:2 },
+  ], { confirmText:'Unblock & update deadline' });
+  if(!out) return;
+  const old = t.herDeadline;
+  const ok = await updateTask(t, { blocked:null, herDeadline:out.date }, 'resolved the blocker and moved the deadline from ' + fmtDate(old) + ' to ' + fmtDate(out.date) + (out.note ? ' (' + out.note + ')' : ''));
+  if(ok) offerNotify(t, 'unblocked', 'Unblocked ✓');
+}
+async function respondToExtension(t, approve){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const ex = t.extension || {};
+  if(approve){ const ok = await updateTask(t, { herDeadline:ex.date, extension:Object.assign({}, ex, { status:'approved' }) }, 'approved the extension — new deadline ' + fmtDate(ex.date)); if(ok) offerNotify(t, 'ext_ok', 'Extension approved'); return; }
+  const out = await askFields('Decline extension', [{ key:'note', label:'A short note for her (optional)', type:'textarea', rows:2 }], { confirmText:'Decline' });
+  if(!out) return;
+  const ok = await updateTask(t, { extension:Object.assign({}, ex, { status:'declined', note:out.note || '' }) }, 'declined the extension' + (out.note ? ': ' + out.note : ''));
+  if(ok) offerNotify(t, 'ext_no', 'Extension declined');
+}
+async function adjustPaymentDate(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const out = await askFields('Change the payment date', [
+    { key:'date', label:'New payment date', type:'date', value:t.paymentDueDate, min:todayISO(), required:true },
+  ], { confirmText:'Update' });
+  if(!out) return;
+  const old = t.paymentDueDate;
+  const ok = await updateTask(t, { paymentDueDate:out.date }, 'changed the payment date from ' + fmtDate(old) + ' to ' + fmtDate(out.date));
+  if(ok) offerNotify(t, 'approved', 'Payment date updated');
+}
+async function sendPayment(t){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const out = await askFields('Send payment', [
+    { key:'note', label:'How / where did you send it? (optional)', type:'text', placeholder:'e.g. Wise transfer, ref 1234' },
+  ], { confirmText:'I sent it', intro:'She\'ll be asked to confirm receipt. The task only becomes Done once she does.' });
+  if(!out) return;
+  const ok = await updateTask(t, { status:'payment_sent', paymentSentAt:new Date().toISOString(), paymentNote:out.note || '', paymentIssue:false, paymentIssueNote:'' },
+    'sent the payment' + (out.note ? ' (' + out.note + ')' : ''));
+  if(ok) offerNotify(t, 'payment_sent', 'Marked as sent');
+}
+
+/* ---- contributor actions ---- */
+function negBlocked(t){ const s = (t.negotiation || {}).status; return s === 'pending' || s === 'countered'; }
+async function claimTask(t){
+  if(negBlocked(t)){ toast('Settle the price first — then you can start.'); return; }
+  const today = todayISO();
+  if(t.availableFrom && t.availableFrom > today){ toast('This one opens on ' + fmtDate(t.availableFrom) + '.'); return; }
+  const assigned = t.status === 'assigned_pending';
+  const early = claimBlockMessage(t, null);
+  if(early){ await blockDialog('Your weekly limit', early); return; }
+  const max = addDaysISO(today, t.durationDays || 3);
+  const out = await askFields(assigned ? 'Accept this task' : 'Claim this task', [
+    { key:'deadline', label:'Your deadline', type:'date', value:max, min:today, max:max, required:true,
+      help:'You choose the day you\'ll deliver — anywhere from today to ' + fmtDate(max) + '. Picking your own date is part of owning the task.' },
+  ], { confirmText: assigned ? 'Accept & start' : 'Claim it' });
+  if(!out) return;
+  const late = claimBlockMessage(t, out.deadline);
+  if(late){ await blockDialog('Your weekly limit', late); return; }
+  const ok = await updateTask(t, { status:'claimed', claimedAt:new Date().toISOString(), herDeadline:out.deadline, extension:{ status:'none' } },
+    (assigned ? 'accepted' : 'claimed') + ' the task — deadline set to ' + fmtDate(out.deadline));
+  if(ok) offerNotify(t, 'claimed', assigned ? 'Task accepted ✓' : 'Task claimed ✓');
+}
+async function deferTask(t){
+  const nextWeek = addDaysISO(weekStartISO(todayISO()), 7);
+  const out = await askFields('Not this week', [
+    { key:'date', label:'Move it to', type:'date', value:nextWeek, min:addDaysISO(todayISO(), 1), required:true, help:'It stays assigned to you, but won\'t need anything from you until this date.' },
+    { key:'reason', label:'Reason (optional)', type:'text', placeholder:'e.g. exams, family, need a lighter week' },
+  ], { confirmText:'Move it', intro:'Saying "not right now" is part of being a good freelancer. No explanation needed.' });
+  if(!out) return;
+  const ok = await updateTask(t, { availableFrom:out.date }, 'moved the task to ' + fmtDate(out.date) + (out.reason ? ' (' + out.reason + ')' : ''));
+  if(ok) offerNotify(t, 'deferred', 'Moved to ' + fmtDate(out.date));
+}
+async function proposePrice(t){
+  const r = TIERS[t.tier];
+  const out = await askFields('Propose a different price', [
+    { key:'price', label:'Your price ($)', type:'number', value:t.agreedPrice, min:r.min, max:r.max, step:5, required:true, help:'For a ' + r.label + ' task the range is $' + r.min + '–$' + r.max + '.' },
+    { key:'reason', label:'Why? (a sentence is plenty)', type:'textarea', rows:2 },
+  ], { confirmText:'Send proposal', intro:'Negotiating respectfully is a real professional skill. No pressure either way.' });
+  if(!out) return;
+  if(out.price === t.agreedPrice){ toast('That\'s already the current price.'); return; }
+  const ok = await updateTask(t, { negotiation:{ status:'pending', proposedPrice:out.price, reason:out.reason || '' } }, 'proposed ' + fmtMoney(out.price) + (out.reason ? ' — “' + out.reason + '”' : ''));
+  if(ok) offerNotify(t, 'proposal', 'Proposal sent');
+}
+async function withdrawProposal(t){ return updateTask(t, { negotiation:{ status:'none' } }, 'withdrew the price proposal'); }
+async function respondToCounter(t, accept){
+  const neg = t.negotiation || {};
+  if(accept) return updateTask(t, { agreedPrice:neg.counterPrice, suggestedPrice:neg.counterPrice, negotiation:{ status:'accepted' } }, 'accepted the counter of ' + fmtMoney(neg.counterPrice));
+  return updateTask(t, { negotiation:{ status:'declined' } }, 'declined the counter — original price of ' + fmtMoney(t.agreedPrice) + ' stands');
+}
+async function adjustMyDeadline(t){
+  const today = todayISO();
+  const windowEnd = addDaysISO((t.claimedAt ? localISO(new Date(t.claimedAt)) : today), t.durationDays || 3);
+  const max = t.herDeadline && t.herDeadline > windowEnd ? t.herDeadline : windowEnd;
+  const out = await askFields('Adjust my deadline', [
+    { key:'date', label:'New deadline', type:'date', value:t.herDeadline, min:today, max:max, required:true, help:'You can move it anywhere up to ' + fmtDate(max) + '. Need longer? Use "Ask for more time".' },
+  ], { confirmText:'Update' });
+  if(!out) return;
+  await updateTask(t, { herDeadline:out.date }, 'moved the deadline from ' + fmtDate(t.herDeadline) + ' to ' + fmtDate(out.date));
+}
+async function requestExtension(t){
+  const out = await askFields('Ask for more time', [
+    { key:'date', label:'Proposed new deadline', type:'date', value:addDaysISO(t.herDeadline && t.herDeadline > todayISO() ? t.herDeadline : todayISO(), 2), min:todayISO(), required:true },
+    { key:'reason', label:'What\'s going on? (optional, but it helps)', type:'textarea', rows:2 },
+  ], { confirmText:'Send request', intro:'Life happens. Asking early is always fine.' });
+  if(!out) return;
+  const ok = await updateTask(t, { extension:{ status:'pending', date:out.date, reason:out.reason || '', at:new Date().toISOString() } },
+    'asked for more time — until ' + fmtDate(out.date) + (out.reason ? ' (“' + out.reason + '”)' : ''));
+  if(ok) offerNotify(t, 'ext_req', 'Request sent');
+}
+async function logTime(t){
+  const today = todayISO();
+  const out = await askFields('Log time', [
+    { key:'date', label:'Day you worked', type:'date', value:today, min:addDaysISO(today, -14), max:today, required:true },
+    { key:'hours', label:'Hours', type:'number', value:0, min:0, max:HARD_CAP, step:1 },
+    { key:'minutes', label:'Minutes', type:'number', value:0, min:0, max:59, step:1 },
+    { key:'note', label:'What did you work on? (optional)', type:'text' },
+  ], { confirmText:'Log it', intro:'Log as you go, or whenever you remember — whatever is easiest. This is just for you two to keep the numbers honest.',
+    validate: o => ((Number(o.hours) || 0) * 60 + (Number(o.minutes) || 0)) <= 0 ? 'Add some time — even 10 minutes counts.' : null });
+  if(!out) return;
+  const mins = (Number(out.hours) || 0) * 60 + (Number(out.minutes) || 0);
+  const at = parseLocal(out.date); at.setHours(12, 0, 0, 0);
+  const wk = weekStartISO(out.date), before = weekUsedMin(wk);
+  const ok = await updateTask(t, { timeLog:storedEntries(t).concat([{ at:at.toISOString(), minutes:mins, note:out.note || '' }]) }, 'logged ' + fmtDur(mins) + (out.note ? ' (' + out.note + ')' : ''));
+  if(!ok) return;
+  const cap = capFor(wk), used = weekUsedMin(wk);
+  if(used >= cap * 60 && before < cap * 60) toast('That\'s your ' + cap + 'h for the week. New tasks open again on Monday — rest well. 🌿');
+  else toast('Logged ' + fmtDur(mins) + ' ✓');
+}
+async function setBlocked(t){
+  const out = await askFields('I\'m blocked', [
+    { key:'reason', label:'What do you need from Nora?', type:'textarea', rows:3, required:true, placeholder:'e.g. I need access to the folder / a decision on X' },
+  ], { confirmText:'Flag it', intro:'Your deadline pauses while you wait, and it moves by the same amount once you\'re unblocked. Flagging this early is exactly right.' });
+  if(!out) return;
+  const ok = await updateTask(t, { blocked:{ active:true, reason:out.reason, at:new Date().toISOString() } }, 'flagged a blocker: ' + out.reason);
+  if(ok) offerNotify(t, 'blocked', 'Flagged — your deadline is paused');
+}
+async function clearBlockedSelf(t){ return updateTask(t, { blocked:null }, 'said the blocker is resolved'); }
+async function toggleCriterion(t, i, checked){
+  const next = (t.criteria || []).map((c, j) => j === i ? { text:c.text, done:checked } : c);
+  return updateTask(t, { criteria:next }, null);
+}
+async function submitTask(t){
+  const crit = t.criteria || [], undone = crit.filter(c => !c.done).length;
+  if(undone){
+    const go = await confirmDialog('Some items aren\'t ticked', undone + ' of ' + crit.length + ' “done means” items aren\'t ticked yet. Submit anyway?', 'Submit anyway');
+    if(!go) return;
+  }
+  const out = await askFields(t.status === 'needs_revision' ? 'Resubmit' : 'Submit your work', [
+    { key:'deliverableUrl', label:'Link to your work', type:'url', placeholder:'https://… (Drive, Canva, doc…)' },
+    { key:'note', label:'Anything I should know? (optional)', type:'textarea', rows:2 },
+    { key:'hours', label:'Time not logged yet — hours (optional)', type:'number', min:0, max:HARD_CAP, step:1 },
+    { key:'minutes', label:'Time not logged yet — minutes (optional)', type:'number', min:0, max:59, step:1, help:'Already logged along the way? Leave these empty.' },
+    { key:'reflection', label:'What was the trickiest part? (optional)', type:'text' },
+  ], { confirmText:'Submit', validate: o => (!o.deliverableUrl && !o.note) ? 'Add a link to your work or a short note about it.' : null });
+  if(!out) return;
+  const extra = (Number(out.hours) || 0) * 60 + (Number(out.minutes) || 0);
+  const upd = { status:'submitted', submittedAt:new Date().toISOString(), deliverableUrl:out.deliverableUrl || '', submitNote:out.note || '',
+    reflection:out.reflection || '', revisionNote:'', extension:{ status:'none' }, blocked:null };
+  if(extra > 0){ const at = new Date(); upd.timeLog = storedEntries(t).concat([{ at:at.toISOString(), minutes:extra, note:'at submission' }]); }
+  const ok = await updateTask(t, upd, 'submitted the work' + (extra > 0 ? ' (logged ' + fmtDur(extra) + ' more)' : ''));
+  if(ok) offerNotify(t, 'submitted', 'Submitted ✓');
+}
+async function confirmReceipt(t){
+  const go = await confirmDialog('Confirm payment', 'Did ' + fmtMoney(priceOf(t)) + ' for “' + t.name + '” actually arrive? Confirming closes the task.', 'Yes, I received it');
+  if(!go) return;
+  const ok = await updateTask(t, { status:'paid', paidAt:new Date().toISOString() }, 'confirmed the payment was received');
+  if(ok) offerNotify(t, 'received', 'Payment confirmed ✓');
+}
+async function disputePayment(t){
+  const out = await askFields('It hasn\'t arrived yet', [
+    { key:'reason', label:'What happened? (optional)', type:'text', placeholder:'e.g. Haven\'t seen it yet / wrong number' },
+  ], { confirmText:'Let Nora know', intro:'No worries — this just flags it so it can be sorted out.' });
+  if(!out) return;
+  const ok = await updateTask(t, { status:'approved', paymentIssue:true, paymentIssueNote:out.reason || '' }, 'reported the payment hasn\'t arrived' + (out.reason ? ': ' + out.reason : ''));
+  if(ok) offerNotify(t, 'not_received', 'Nora has been flagged');
+}
+function setFocus(id){
+  focusId = id;
+  try{ if(id) localStorage.setItem('tt_focus', id); else localStorage.removeItem('tt_focus'); }catch(e){}
+  render();
+}
+
+/* ---- notes (both roles) ---- */
+async function addComment(t){
+  const out = await askFields('Add a note', [
+    { key:'text', label:'Your note or question', type:'textarea', rows:3, required:true, placeholder:'Kept with the task so nothing gets lost in chat.' },
+  ], { confirmText:'Add note' });
+  if(!out) return;
+  const ok = await updateTask(t, { comments:(t.comments || []).concat([{ at:new Date().toISOString(), by: amOwner ? 'owner' : 'contributor', text:out.text }]) }, null);
+  if(ok){ openNotes.add(t.id); render(); offerNotify(t, 'comment', 'Note added ✓'); }
+}
+
+/* ---- weekly hours per week (time off, exams, lighter weeks) ---- */
+async function openWeekHours(){
+  const wk0 = weekStartISO(todayISO());
+  const opts = [0,1,2,3,4,5].map(i => { const w = addDaysISO(wk0, 7 * i), c = capFor(w); return { value:w, label:weekLabel(w) + (i === 0 ? ' (this week)' : '') + (c < HARD_CAP ? ' — ' + c + 'h' : '') }; });
+  const out = await askFields('Set hours for a week', [
+    { key:'week', label:'Week', type:'select', value:wk0, options:opts },
+    { key:'hours', label:'Hours available for tasks that week', type:'number', value:HARD_CAP, min:0, max:HARD_CAP, step:0.5, required:true,
+      help:'20 is the maximum and can\'t be raised. Use 0 for time off (holiday, family, rest) — no new tasks can be assigned or accepted that week.' },
+    { key:'reason', label:'Reason (optional)', type:'text', placeholder:'e.g. Holiday' },
+  ], { confirmText:'Save' });
+  if(!out || !db) return;
+  const weeks = Object.assign({}, capSettings.weeks || {});
+  if(Number(out.hours) >= HARD_CAP) delete weeks[out.week]; else weeks[out.week] = { hours:Number(out.hours), reason:out.reason || '', by: amOwner ? 'owner' : 'contributor' };
+  try{ await db.doc('settings/capacity').set({ weeks, updatedAt:new Date().toISOString() }); capSettings = { weeks }; render(); toast('Saved ✓'); }
+  catch(e){ toast('Couldn\'t save that setting.', true); }
+}
+
+/* ============ recurring tasks ============ */
+function taskFromRule(rule){
+  const now = new Date().toISOString();
+  return { name:rule.name, description:rule.description, resourceUrl:rule.resourceUrl || '', skill:rule.skill || 'other', tier:rule.tier,
+    suggestedPrice:rule.price, agreedPrice:rule.price, durationDays:rule.durationDays, estimatedHours:rule.estimatedHours || null, mode:rule.mode,
+    criteria:(rule.criteria || []).map(s => ({ text:s, done:false })),
+    status: rule.mode === 'open' ? 'open' : 'assigned_pending', negotiation:{ status:'none' }, extension:{ status:'none' }, createdAt:now,
+    recurringId:rule.id, cadence:rule.cadence,
+    history:[{ at:now, by:'owner', text:(rule.mode === 'open' ? 'posted' : 'assigned') + ' the task automatically (' + CADENCE[rule.cadence].toLowerCase() + ')' }] };
+}
+async function runRecurring(){
+  if(recurringRan || !amOwner || !db || !tasksLoaded || !rulesLoaded) return;
+  recurringRan = true;
+  const today = todayISO(); let posted = 0;
+  for(const rule of allRules.filter(r => r.active !== false && r.nextDate && r.nextDate <= today)){
+    try{
+      const ref = db.doc('tasks/rec-' + rule.id + '-' + rule.nextDate);
+      const snap = await ref.get();
+      if(!snap.exists){
+        const data = taskFromRule(rule);
+        // The weekly limit is hard: an auto-assigned task that doesn't fit this week is posted open and held until next week instead.
+        if(data.status === 'assigned_pending' && assignBlockMessage(rule.estimatedHours, null, rule.durationDays, null)){
+          data.status = 'open'; data.mode = 'open'; data.availableFrom = addDaysISO(weekStartISO(today), 7);
+          data.history.push({ at:new Date().toISOString(), by:'owner', text:'held until next week because the week was already full' });
+        }
+        await ref.set(data); posted++;
+      }
+      let next = rule.nextDate, guard = 0;
+      while(next <= today && guard++ < 60) next = advanceDate(next, rule.cadence);
+      await db.doc('recurring/' + rule.id).update({ nextDate:next, lastPostedAt:new Date().toISOString() });
+    }catch(e){}
+  }
+  if(posted) toast('🔁 Posted ' + posted + ' recurring task' + (posted > 1 ? 's' : ''));
+}
+async function manageRecurring(){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  await openModal(close => {
+    const wrap = el('div', {}, el('div', { class:'modal-title', text:'Recurring tasks' }),
+      el('p', { class:'modal-intro', text:'These post themselves when you open the tracker on or after the due date. To change what a recurring task says, delete it and create it again with the "Repeat" option.' }));
+    if(!allRules.length) wrap.appendChild(el('p', { class:'help', text:'Nothing recurring yet. Choose a “Repeat” option when you create a task.' }));
+    allRules.forEach(r => {
+      const on = r.active !== false;
+      wrap.appendChild(el('div', { class:'note-box calm' },
+        el('div', { style:'font-weight:700;', text:r.name }),
+        el('div', { class:'help', text:CADENCE[r.cadence] + ' · ' + fmtMoney(r.price) + ' · ' + (on ? 'next on ' + fmtDate(r.nextDate) : 'paused') }),
+        el('div', { class:'actions', style:'margin-top:6px;' },
+          el('button', { class:'btn-ghost', text:on ? 'Pause' : 'Resume', onclick: async () => { try{ await db.doc('recurring/' + r.id).update({ active:!on }); }catch(e){ toast('Couldn\'t update that.', true); } close('reopen'); } }),
+          el('button', { class:'btn-danger', text:'Delete', onclick: async () => { try{ await db.doc('recurring/' + r.id).delete(); }catch(e){ toast('Couldn\'t delete that.', true); } close('reopen'); } }))));
+    });
+    wrap.appendChild(el('div', { class:'actions' }, el('button', { class:'btn-ghost', text:'Close', onclick: () => close(null) })));
+    return wrap;
+  }).then(async v => { if(v === 'reopen'){ await new Promise(r => setTimeout(r, 120)); manageRecurring(); } });
+}
+
+/* ============ statements, growth, backup, guide ============ */
+function paidIn(month){
+  return allTasks.filter(t => t.status === 'paid' && t.paidAt && (month === 'all' || localISO(new Date(t.paidAt)).slice(0,7) === month))
+    .sort((a, b) => String(a.paidAt).localeCompare(String(b.paidAt)));
+}
+function spentIn(month){
+  return allTasks.filter(t => (t.status === 'paid' || t.status === 'payment_sent') && spentDate(t) && (month === 'all' || localISO(new Date(spentDate(t))).slice(0,7) === month))
+    .sort((a, b) => String(spentDate(a)).localeCompare(String(spentDate(b))));
+}
+const timeText = t => loggedMin(t) > 0 ? ' · ' + fmtDur(loggedMin(t)) + ' (≈ $' + rateOf(t) + '/h)' : '';
+function spendText(month){
+  const list = spentIn(month), L = [];
+  L.push(month === 'all' ? 'SPENDING RECORD — all time' : 'SPENDING STATEMENT — ' + monthLabel(month), '', 'Paid out:');
+  if(!list.length) L.push('  (none)');
+  list.forEach((t, i) => L.push((i + 1) + '. ' + fmtDate(spentDate(t)) + ' — ' + t.name + ' — ' + fmtMoney(priceOf(t)) + ' (' + (t.status === 'paid' ? 'confirmed received' : 'sent, awaiting her confirmation') + ')'));
+  L.push('', 'Total spent: ' + fmtMoney(list.reduce((s, t) => s + priceOf(t), 0)) + ' (' + list.length + ' task' + (list.length === 1 ? '' : 's') + ')');
+  if(month !== 'all'){
+    const left = allTasks.filter(t => t.status === 'approved');
+    L.push('', 'Left to pay (approved, not yet sent):');
+    if(!left.length) L.push('  (none)');
+    left.forEach(t => L.push('  • ' + t.name + ' — ' + fmtMoney(priceOf(t)) + ' — due ' + fmtDate(t.paymentDueDate)));
+    if(left.length) L.push('Total left to pay: ' + fmtMoney(left.reduce((s, t) => s + priceOf(t), 0)));
+  }
+  return L.join('\n');
+}
+function statementText(month){
+  if(viewerOwner) return spendText(month);
+  const paid = paidIn(month), L = [];
+  if(month === 'all'){
+    L.push('WORK RECORD — all time', '');
+    const by = {}; paid.forEach(t => { (by[t.skill || 'other'] = by[t.skill || 'other'] || []).push(t); });
+    Object.keys(by).forEach(k => { L.push(SKILLS[k] + ' (' + by[k].length + ')'); by[k].forEach(t => L.push('  • ' + t.name + ' — ' + fmtDate(t.paidAt) + ' — ' + fmtMoney(priceOf(t)) + timeText(t))); L.push(''); });
+    if(!paid.length) L.push('  (no completed tasks yet)', '');
+  } else {
+    L.push('TASK STATEMENT — ' + monthLabel(month), '', 'Paid & confirmed:');
+    if(!paid.length) L.push('  (none)');
+    paid.forEach((t, i) => L.push((i + 1) + '. ' + fmtDate(t.paidAt) + ' — ' + t.name + ' — ' + fmtMoney(priceOf(t)) + ' (' + TIERS[t.tier].label + ' · ' + SKILLS[t.skill || 'other'] + timeText(t) + ')'));
+    L.push('');
+  }
+  const total = paid.reduce((s, t) => s + priceOf(t), 0);
+  const timed = paid.filter(t => loggedMin(t) > 0), mins = timed.reduce((s, t) => s + loggedMin(t), 0);
+  L.push('Total confirmed: ' + fmtMoney(total) + ' (' + paid.length + ' task' + (paid.length === 1 ? '' : 's') + ')');
+  if(mins) L.push('Time logged: ' + fmtDur(mins) + ' · average ≈ $' + Math.round(timed.reduce((s, t) => s + priceOf(t), 0) / (mins / 60)) + '/h');
+  if(month !== 'all'){
+    const pend = allTasks.filter(t => ['approved','payment_sent'].includes(t.status));
+    L.push('', 'Currently awaiting payment:');
+    if(!pend.length) L.push('  (none)');
+    pend.forEach(t => L.push('  • ' + t.name + ' — ' + fmtMoney(priceOf(t)) + ' — ' + (t.status === 'payment_sent' ? 'sent — waiting for you to confirm it arrived' : 'due ' + fmtDate(t.paymentDueDate))));
+    if(pend.length) L.push('Total awaiting: ' + fmtMoney(pend.reduce((s, t) => s + priceOf(t), 0)));
+  }
+  return L.join('\n');
+}
+function statementCsv(month){
+  const q = v => { const s = String(v === undefined || v === null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = [['Task','Skill','Tier','Price ($)','Status','Approved','Payment due','Sent','Confirmed','Hours logged']];
+  const pend = allTasks.filter(t => ['approved','payment_sent'].includes(t.status));
+  const list = viewerOwner
+    ? (month === 'all' ? allTasks.filter(t => ['paid','payment_sent','approved'].includes(t.status)) : spentIn(month).concat(allTasks.filter(t => t.status === 'approved')))
+    : (month === 'all' ? allTasks.filter(t => t.status === 'paid') : paidIn(month).concat(pend));
+  list.forEach(t => rows.push([t.name, (SKILLS[t.skill || 'other'] || '').replace(/^\S+\s/, ''), TIERS[t.tier].label, priceOf(t), t.status,
+    t.approvedAt ? localISO(new Date(t.approvedAt)) : '', t.paymentDueDate || '', t.paymentSentAt ? localISO(new Date(t.paymentSentAt)) : '', t.paidAt ? localISO(new Date(t.paidAt)) : '',
+    loggedMin(t) ? round2(loggedMin(t) / 60) : '']));
+  return rows.map(r => r.map(q).join(',')).join('\n');
+}
+const round2 = n => Math.round(n * 100) / 100;
+function openStatement(){
+  const V = viewerOwner;
+  const months = new Set([todayISO().slice(0,7)]);
+  allTasks.forEach(t => { const d = V ? spentDate(t) : t.paidAt; if((V ? (t.status === 'paid' || t.status === 'payment_sent') : t.status === 'paid') && d) months.add(localISO(new Date(d)).slice(0,7)); });
+  const opts = [...months].sort().reverse().map(m => [m, monthLabel(m)]).concat([['all', V ? 'All time — spending record' : 'All time — work record']]);
+  return openModal(close => {
+    const sel = el('select'); opts.forEach(o => sel.appendChild(el('option', { value:o[0], text:o[1] })));
+    sel.setAttribute('data-key', 'month');
+    const ta = el('textarea', { rows:14, style:'font-size:12.5px; line-height:1.5; margin-top:10px;' }); ta.readOnly = true; ta.setAttribute('data-key', 'text');
+    const refresh = () => { ta.value = statementText(sel.value); };
+    sel.onchange = refresh; refresh();
+    return el('div', {}, el('div', { class:'modal-title', text: V ? 'Spending statement' : 'Statement & work record' }),
+      el('p', { class:'modal-intro', text: V ? 'A clear record of what you\'ve paid out and what\'s left to pay — handy for your monthly review and your books.' : 'A clean record of your confirmed payments — handy for your monthly review, your CV and your portfolio.' }), sel, ta,
+      el('div', { class:'actions' }, el('button', { class:'btn-primary', text:'Copy text', onclick: () => copyWithToast(ta.value) }),
+        el('button', { class:'btn-ghost', text:'Copy as CSV', onclick: () => copyWithToast(statementCsv(sel.value)) }),
+        el('button', { class:'btn-ghost', text:'Close', onclick: () => close(null) })));
+  });
+}
+/* ============ gentle, optional reminders for her growth documents ============ */
+/* Everything here is private to her device. Nobody — including Nora — can see whether a reminder was opened or skipped. */
+const REM = {
+  wins:    { emoji:'🎉', title:'Celebrate My Wins', blurb:'If you feel like it — even one small win from today counts.' },
+  weekly:  { emoji:'📖', title:'Weekly Journal',    blurb:'A few quiet minutes to look back on your week.' },
+  monthly: { emoji:'🌿', title:'Monthly Reflection', blurb:'How did this month feel, and what are you growing into?' },
+};
+const INSPIRATION_TITLE = 'If You Need Inspiration, Open Me :)';
+const INSPIRATION_LINES = [
+  'You are a whole person, not just the work you do. This is here for you whenever you want it.',
+  'Nothing to finish and nothing to prove right now. Your worth was never measured in tasks.',
+  'Take a slow breath. Someone put something in here for you.',
+  'You matter far beyond what you get done today. Open this if you could use a little warmth.',
+  'However today is going, you are enough as you are. There\'s something kind waiting for you.',
+  'A small pause, just for you. No pressure and no checklist.',
+];
+function winsSummary(startISO, endISO, title){
+  const inR = iso => { if(!iso) return false; const d = localISO(new Date(iso)); return d >= startISO && d <= endISO; };
+  const L = [title, ''];
+  let mins = 0;
+  allTasks.forEach(t => {
+    entriesOf(t).forEach(e => { const d = localISO(new Date(e.at)); if(d >= startISO && d <= endISO) mins += Number(e.minutes) || 0; });
+    if(inR(t.submittedAt) && ['submitted','approved','payment_sent','paid'].includes(t.status)) L.push('✓ Submitted “' + t.name + '”');
+    if(inR(t.paidAt) && t.status === 'paid') L.push('✓ Payment confirmed for “' + t.name + '”');
+    if(inR(t.approvedAt) && t.feedbackGood) L.push('👍 Nora said about “' + t.name + '”: ' + t.feedbackGood);
+    if(inR(t.approvedAt) && t.feedbackGrow) L.push('🌱 Something I\'m growing into: ' + t.feedbackGrow);
+    if(inR(t.submittedAt) && t.reflection) L.push('💭 The trickiest part of “' + t.name + '”: ' + t.reflection);
+  });
+  if(mins) L.push('⏱ Time I put in: ' + fmtDur(mins));
+  if(L.length === 2) L.push('(Nothing from your tasks in this stretch — and that\'s okay. Rest counts too.)');
+  return L.join('\n');
+}
+function reminderSummary(it){
+  if(it.kind === 'wins') return winsSummary(it.period, it.period, 'Wins — ' + fmtDate(it.period));
+  if(it.kind === 'weekly') return winsSummary(it.period, addDaysISO(it.period, 6), 'My week — ' + weekLabel(it.period));
+  const y = Number(it.period.slice(0, 4)), m = Number(it.period.slice(5, 7));
+  return winsSummary(it.period + '-01', localISO(new Date(y, m, 0)), 'My month — ' + monthLabel(it.period));
+}
+// What is due right now. Daily: from 6pm. Weekly: Thursday 6pm through Saturday (her weekend starts Friday). Monthly: from 6pm on the last day until the 3rd of the next month.
+function dueReminders(now, afterStop){
+  const today = localISO(now), h = now.getHours(), dow = now.getDay(), out = [], from = afterStop ? 15 : 18;
+  if(h >= from && lsGet('tt_r_wins') !== today && safeUrl(reminderLinks.wins)) out.push({ kind:'wins', period:today, label:'Today' });
+  const wk = weekStartISO(today);
+  if(((dow === 4 && h >= from) || dow === 5 || dow === 6) && lsGet('tt_r_weekly') !== wk && safeUrl(reminderLinks.weekly)) out.push({ kind:'weekly', period:wk, label:'This week' });
+  const y = now.getFullYear(), m = now.getMonth(), dom = now.getDate(), last = new Date(y, m + 1, 0).getDate();
+  let key = null;
+  if(dom === last && h >= from) key = y + '-' + pad(m + 1);
+  else if(dom <= 3){ const pm = new Date(y, m - 1, 1); key = pm.getFullYear() + '-' + pad(pm.getMonth() + 1); }
+  if(key && lsGet('tt_r_monthly') !== key && safeUrl(reminderLinks.monthly)) out.push({ kind:'monthly', period:key, label:monthLabel(key) });
+  return out;
+}
+function scheduleInspiration(now, first){
+  const hours = first ? 4 + Math.random() * 44 : 48 + Math.random() * 72; // first one within ~2 days, then every 2–5 days
+  lsSet('tt_insp_next', String(now.getTime() + hours * 3600000));
+}
+function inspirationDue(now){
+  const h = now.getHours();
+  if(h < 9 || h >= 22 || !safeUrl(reminderLinks.inspiration)) return false;
+  const next = Number(lsGet('tt_insp_next') || 0);
+  if(!next){ scheduleInspiration(now, true); return false; }
+  return now.getTime() >= next;
+}
+let remBusy = false;
+async function checkReminders(){
+  return;   // demo: reminders are off
+  if(amOwner || !db || remBusy || session) return;
+  if(document.querySelector('.modal-overlay')) return;
+  const now = new Date();
+  if(now.getTime() < Number(lsGet('tt_r_snooze') || 0)) return;
+  remBusy = true;
+  try{
+    const due = dueReminders(now);
+    if(due.length) await openCheckin(due, false);
+    else if(inspirationDue(now)) await openInspiration(false);
+  } finally { remBusy = false; }
+}
+async function openCheckin(items, sample){
+  const r = await openModal(close => {
+    const wrap = el('div', {}, el('div', { class:'modal-title', text: sample ? '🔔 Preview — how her reminder looks' : '🌙 A gentle moment for you (optional)' }),
+      el('p', { class:'modal-intro', text: sample ? 'Nothing here is saved or sent. She only sees this when she opens the tracker, and she can ignore it.' : 'No pressure at all — only if you feel like it. Nobody sees whether you open these.' }));
+    items.forEach(it => {
+      const def = REM[it.kind], url = safeUrl(reminderLinks[it.kind]) || '#';
+      const a = el('a', { class:'btn-link', href:url, target:'_blank', rel:'noopener noreferrer', text:def.emoji + ' Open ' + def.title });
+      a.onclick = () => { if(!sample) lsSet('tt_r_' + it.kind, it.period); a.textContent = '✓ Opened — ' + def.title; };
+      const ta = el('textarea', { rows:6, style:'font-size:12.5px; margin-top:6px;' }); ta.readOnly = true; ta.value = reminderSummary(it); ta.setAttribute('data-key', 'sum-' + it.kind);
+      const det = el('details', { class:'hist' }, el('summary', { text:'What I did (copy it into your document if it helps)' }), ta,
+        el('div', { class:'actions' }, el('button', { class:'btn-ghost', text:'Copy', onclick: () => copyWithToast(ta.value) })));
+      wrap.appendChild(el('div', { class:'note-box calm' }, el('div', { style:'font-weight:700;', text:def.title + ' · ' + it.label }),
+        el('div', { class:'help', style:'margin:2px 0 8px;', text:def.blurb }), a, det));
+    });
+    wrap.appendChild(el('div', { class:'actions' }, el('button', { class:'btn-ghost', text:'Later', onclick: () => close('later') }), el('button', { class:'btn-ghost', text:'Not this time', onclick: () => close('skip') })));
+    return wrap;
+  });
+  if(sample) return;
+  if(r === 'skip') items.forEach(it => lsSet('tt_r_' + it.kind, it.period));
+  else lsSet('tt_r_snooze', String(Date.now() + (r === 'later' ? 3 : 1) * 3600000));
+}
+async function openInspiration(sample){
+  const url = safeUrl(reminderLinks.inspiration) || '#';
+  let idx, guard = 0;
+  do{ idx = Math.floor(Math.random() * INSPIRATION_LINES.length); } while(INSPIRATION_LINES.length > 1 && String(idx) === lsGet('tt_insp_idx') && guard++ < 10);
+  if(!sample) lsSet('tt_insp_idx', String(idx));
+  await openModal(close => {
+    const a = el('a', { class:'btn-link', href:url, target:'_blank', rel:'noopener noreferrer', text:'💛 Open “' + INSPIRATION_TITLE + '”' });
+    a.onclick = () => { a.textContent = '✓ Opened — take all the time you like'; };
+    return el('div', {}, el('div', { class:'modal-title', text: sample ? '💛 Preview — one of her random reminders' : '💛 A little something for you' }),
+      el('p', { class:'modal-intro', style:'font-size:14.5px; line-height:1.7; color:var(--ink);', text:INSPIRATION_LINES[idx] }), a,
+      el('div', { class:'actions' }, el('button', { class:'btn-ghost', text:'Not now', onclick: () => close(null) })));
+  });
+  if(!sample) scheduleInspiration(new Date(), false);
+}
+function openReminderSamples(){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  return openModal(close => el('div', {}, el('div', { class:'modal-title', text:'Her reminders' }),
+    el('p', { class:'modal-intro', text:'See exactly what she sees. Nothing you do here is saved.' }),
+    el('div', { class:'actions', style:'flex-direction:column; align-items:stretch;' },
+      el('button', { class:'btn-ghost', text:'🌙 Evening — Celebrate My Wins', onclick: () => close('wins') }),
+      el('button', { class:'btn-ghost', text:'📖 End of week — Weekly Journal', onclick: () => close('weekly') }),
+      el('button', { class:'btn-ghost', text:'🌿 End of month — Monthly Reflection', onclick: () => close('monthly') }),
+      el('button', { class:'btn-ghost', text:'💛 Random — If You Need Inspiration', onclick: () => close('inspiration') })),
+    el('div', { class:'actions' }, el('button', { class:'btn-ghost', text:'Close', onclick: () => close(null) })))
+  ).then(async v => {
+    if(!v) return;
+    await new Promise(r => setTimeout(r, 80));
+    if(v === 'inspiration') return openInspiration(true);
+    const today = todayISO();
+    const it = v === 'wins' ? { kind:'wins', period:today, label:'Today' } : v === 'weekly' ? { kind:'weekly', period:weekStartISO(today), label:'This week' } : { kind:'monthly', period:today.slice(0, 7), label:monthLabel(today.slice(0, 7)) };
+    return openCheckin([it], true);
+  });
+}
+const REM_FIELDS = [['wins','Celebrate My Wins — daily, in the evening'], ['weekly','Weekly Journal — end of each week'], ['monthly','Monthly Reflection — end of each month'], ['inspiration','If You Need Inspiration, Open Me :) — now and then, at random']];
+function normalizeLink(v){
+  v = String(v || '').trim();
+  if(!v) return '';
+  if(!/^https?:\/\//i.test(v) && /^[\w-]+(\.[\w-]+)+(\/|$)/.test(v)) v = 'https://' + v;
+  return safeUrl(v) ? v : null;
+}
+let accessInfo = null, canEditFlag = false;
+let remQueue = Promise.resolve();
+let remShown = false; // true while Nora has opened the card, or is in the middle of setting links up
+function applyRemVisibility(){
+  { const rc = document.getElementById('remCard'); if(rc) rc.classList.add('rem-off'); return; }   // demo: reminders are off
+  const c = document.getElementById('remCard'); if(!c) return;
+  const n = REM_FIELDS.filter(f => safeUrl(reminderLinks[f[0]])).length;
+  // Visible only while setup is unfinished (unless she chose to hide it), or when she opens it with the toolbar button.
+  c.classList.toggle('rem-off', !(remShown || (n < 4 && lsGet('tt_rem_hidden') !== '1')));
+}
+function remStatus(k, msg, bad){ const st = document.getElementById('remst-' + k); if(st){ st.textContent = msg; st.style.color = bad ? 'var(--brick)' : 'var(--muted)'; } }
+function renderAccessNote(){
+  const n = document.getElementById('accessNote'); if(!n) return;
+  n.replaceChildren();
+  return;   // demo: no sharing settings to check
+  if(!amOwner) return;
+  if(!accessInfo) n.appendChild(el('span', { class:'help', text:'🔐 Her access: not checked yet — this appears the first time she opens the tracker.' }));
+  else if(accessInfo.contributorCanEdit) n.appendChild(el('div', { class:'note-box', text:'⚠️ She can edit the tracker itself (Editor access). In Share, change her to Contributor, so she can use tasks but not change the tool.' }));
+  else n.appendChild(el('span', { class:'help', text:'🔐 Her access: Contributor ✓ — she can use her tasks, but she can\'t change the tracker itself. (Checked ' + fmtDate(accessInfo.checkedAt) + ')' }));
+}
+function refreshRemSummary(){
+  const n = REM_FIELDS.filter(f => safeUrl(reminderLinks[f[0]])).length;
+  const sm = document.getElementById('remSummary');
+  if(sm) sm.textContent = n === 4 ? '🔔 Her gentle reminders — all 4 links saved ✓' : '🔔 Her gentle reminders — ' + n + ' of 4 links saved';
+}
+async function saveReminderField(k){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const inp = document.getElementById('rem-' + k);
+  if(!inp) return;
+  const norm = normalizeLink(inp.value);
+  if(norm === null){ remStatus(k, '⚠️ That doesn\'t look like a link — paste the full address from Google.', true); return; }
+  if(!db){ remStatus(k, '⚠️ Storage isn\'t available right now.', true); return; }
+  if(norm === (reminderLinks[k] || '')){ remStatus(k, norm ? '✓ Saved in the tracker' : ''); return; }
+  remStatus(k, 'Saving…');
+  const next = Object.assign({}, reminderLinks); next[k] = norm;
+  try{
+    await db.doc('settings/links').set({ wins:next.wins, weekly:next.weekly, monthly:next.monthly, inspiration:next.inspiration, updatedAt:new Date().toISOString() });
+    const back = await db.doc('settings/links').get();
+    if(back.exists && (back.data()[k] || '') === norm){ reminderLinks = next; inp.value = norm; remStatus(k, norm ? '✓ Saved in the tracker' : 'Removed'); }
+    else remStatus(k, '⚠️ It went through but I couldn\'t confirm it. Reload the page and check.', true);
+  }catch(e){ remStatus(k, '⚠️ Couldn\'t save: ' + (e && e.message ? e.message : 'unknown error'), true); }
+  refreshRemSummary(); remShown = true; applyRemVisibility();
+}
+function setupReminderCard(){
+  const rows = document.getElementById('remRows');
+  REM_FIELDS.forEach(f => {
+    const k = f[0];
+    const inp = el('input', { type:'url', id:'rem-' + k, placeholder:'https://docs.google.com/…', autocomplete:'off' });
+    const queue = () => { remQueue = remQueue.then(() => saveReminderField(k)); };
+    let timer;
+    inp.addEventListener('input', () => { remStatus(k, ''); clearTimeout(timer); timer = setTimeout(queue, 700); });
+    inp.addEventListener('paste', () => { clearTimeout(timer); timer = setTimeout(queue, 250); });
+    inp.addEventListener('change', () => { clearTimeout(timer); queue(); });
+    rows.appendChild(el('div', { class:'field' }, el('label', { text:f[1] }), inp, el('div', { class:'help', id:'remst-' + k, style:'min-height:16px;' })));
+  });
+}
+function syncReminderCard(first){
+  REM_FIELDS.forEach(f => { const inp = document.getElementById('rem-' + f[0]); if(inp && document.activeElement !== inp && inp.value !== (reminderLinks[f[0]] || '')) inp.value = reminderLinks[f[0]] || ''; });
+  refreshRemSummary();
+  if(first) document.getElementById('remCard').open = true;
+  applyRemVisibility();
+}
+function toggleReminderCard(){
+  if(!amOwner) return;   // owner-only: refuses to run for anyone else, even if called directly
+  const c = document.getElementById('remCard');
+  if(!c.classList.contains('rem-off')){ remShown = false; lsSet('tt_rem_hidden', '1'); }
+  else { remShown = true; lsSet('tt_rem_hidden', '0'); c.open = true; }
+  applyRemVisibility();
+  if(!c.classList.contains('rem-off') && c.scrollIntoView) c.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+/* ============ work sessions + her private work diary ============ */
+/* The diary lives in HER private storage area (data/users/<her id>/…). Only she can read it — not even the tracker's owner.
+   Only the TIME per task is copied into the shared task record, so hours, rates and the weekly limit stay accurate.
+   If no private area is available in a view, the whole feature switches off — it never falls back to shared storage. */
+let myUid = null;
+let session = null;      // the running session, or null
+let diary = [];          // finished sessions, newest first
+let sessStale = false;   // a running session whose page hasn't been seen for a while
+const SESS_GRACE = 30 * 60000;   // a forgotten session stops counting toward the week 30 min after she was last seen
+const SESS_STALE = 20 * 60000;   // after 20 min unseen, ask "still going?" instead of assuming
+const SESS_MAX_H = 10;
+
+function sessBase(){ return 'data/users/' + myUid; }
+function sessRef(id){ return db.doc(sessBase() + '/' + id); }
+const hm = ms => new Date(ms).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+const hmValue = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const dayLabel = ms => new Date(ms).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+function atTime(dateISO, hmStr){ const p = dateISO.split('-').map(Number), q = hmStr.split(':').map(Number); return new Date(p[0], p[1] - 1, p[2], q[0], q[1], 0, 0).getTime(); }
+function splitByDay(startMs, endMs){   // a session that crosses midnight is split so each day's time lands in the right week
+  const out = []; let s = startMs, guard = 0;
+  while(s < endMs && guard++ < 60){
+    const d = new Date(s), next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime(), e = Math.min(endMs, next);
+    if(e > s) out.push({ startMs:s, endMs:e });
+    s = e;
+  }
+  return out;
+}
+function resolveEnd(hmStr){   // "finished at 3:40" → the most recent 3:40 that isn't in the future
+  const q = hmStr.split(':').map(Number), d = new Date(); d.setHours(q[0], q[1], 0, 0);
+  let ms = d.getTime(); if(ms > Date.now() + 60000) ms -= 86400000;
+  return ms;
+}
+function liveEndMs(){ return Math.min(Date.now(), (session.lastSeenAt || session.startAt) + SESS_GRACE); }
+// Time from the RUNNING session counts toward tasks and the weekly bar as it happens (read-only; never written until she stops).
+function liveEntriesFor(t){
+  if(!session || session.ending) return [];
+  const out = [], end = liveEndMs();
+  (session.segments || []).forEach(g => {
+    if(g.taskId !== t.id) return;
+    const e = g.endAt || end;
+    if(e <= g.startAt) return;
+    splitByDay(g.startAt, e).forEach(p => out.push({ at:new Date(p.startMs).toISOString(), minutes:(p.endMs - p.startMs) / 60000, live:true }));
+  });
+  return out;
+}
+function entriesFromSegments(segs, sid){
+  const by = {};
+  (segs || []).forEach(g => {
+    if(!g.taskId || !g.endAt || g.endAt <= g.startAt) return;
+    splitByDay(g.startAt, g.endAt).forEach(p => {
+      const m = Math.round((p.endMs - p.startMs) / 60000);
+      if(m > 0) (by[g.taskId] = by[g.taskId] || []).push({ at:new Date(p.startMs).toISOString(), minutes:m, note:'work session', sid });
+    });
+  });
+  return by;
+}
+// Replaces every time entry that came from one session (idempotent — safe to retry) and logs the change on the task for both of you.
+async function applySessionTime(sid, newSegs, oldSegs){
+  const by = entriesFromSegments(newSegs, sid);
+  const ids = new Set(Object.keys(by).concat((oldSegs || []).filter(g => g.taskId).map(g => g.taskId)));
+  for(const id of ids){
+    const t = allTasks.find(x => x.id === id);
+    if(!t) continue;
+    const before = storedEntries(t), rest = before.filter(e => e.sid !== sid), next = rest.concat(by[id] || []);
+    const oldMin = before.filter(e => e.sid === sid).reduce((s, e) => s + (Number(e.minutes) || 0), 0), newMin = (by[id] || []).reduce((s, e) => s + e.minutes, 0);
+    if(oldMin === newMin && before.length === next.length) continue;
+    const label = oldMin === 0 ? 'logged ' + fmtDur(newMin) + ' (work session)' : newMin === 0 ? 'removed ' + fmtDur(oldMin) + ' of logged time (work session deleted)' : 'adjusted logged time from a work session: ' + fmtDur(oldMin) + ' → ' + fmtDur(newMin);
+    if(!(await updateTask(t, { timeLog:next }, label))) return false;
+  }
+  return true;
+}
+const sessMin = d => (d.segments || []).reduce((s, g) => s + Math.max(0, Math.round(((g.endAt || d.endAt) - g.startAt) / 60000)), 0);
+function segSummary(segs){
+  const by = {}; segs.forEach(g => { const k = g.taskName || 'General'; by[k] = (by[k] || 0) + Math.round((g.endAt - g.startAt) / 60000); });
+  return Object.keys(by).map(k => k + ' ' + fmtDur(by[k])).join(' · ');
+}
+const segmentsClosedAt = endMs => session.segments.map(g => Object.assign({}, g, { endAt: g.endAt || endMs })).filter(g => g.endAt > g.startAt);
+const inProgressTasks = () => allTasks.filter(t => t.status === 'claimed' || t.status === 'needs_revision');
+
+function onSessionsSnapshot(snap){
+  const docs = snap.docs.map(d => Object.assign({ id:d.id }, d.data()));
+  const cur = docs.find(d => d.id === 'current');
+  const ending = !!(session && session.ending);
+  if(cur && cur.segments && cur.segments.length){
+    const wasNone = !session;
+    session = { startAt:cur.startAt, lastSeenAt:cur.lastSeenAt || cur.startAt, segments:cur.segments, ending, pendingSid:cur.pendingSid || (session && session.pendingSid) || null };
+    if(wasNone) sessStale = (Date.now() - session.lastSeenAt) > SESS_STALE;
+    else if(sessStale && (Date.now() - session.lastSeenAt) <= SESS_STALE) sessStale = false;   // another device of hers is active — no need to ask
+  } else if(!ending) { session = null; sessStale = false; }
+  diary = docs.filter(d => /^s-/.test(d.id)).sort((a, b) => b.startAt - a.startAt);
+  render();
+}
+
+/* ---- start / switch / heartbeat / stop ---- */
+async function startSession(taskId){
+  if(!myUid || !db || session) return;
+  const now = Date.now(), t = taskId ? allTasks.find(x => x.id === taskId) : null;
+  const s = { startAt:now, lastSeenAt:now, segments:[{ taskId:t ? t.id : null, taskName:t ? t.name : 'General', startAt:now, endAt:null }] };
+  try{ await sessRef('current').set(s); }
+  catch(e){ toast('Couldn\'t start the timer. Your private work diary may not be available in this view.', true); return; }
+  session = Object.assign({}, s); sessStale = false; render();
+  toast('Started — I\'ll keep the time for you ✓');
+}
+async function startFlow(){
+  if(session){ const c = document.getElementById('sessionCard'); if(c && c.scrollIntoView) c.scrollIntoView({ behavior:'smooth', block:'start' }); return; }
+  const tasks = inProgressTasks();
+  const out = await askFields('Start working', [
+    { key:'task', label:'What are you starting with?', type:'select', value: tasks.length === 1 ? tasks[0].id : '', options:[{ value:'', label:'General / something else' }].concat(tasks.map(t => ({ value:t.id, label:t.name }))) },
+  ], { confirmText:'▶ Start' });
+  if(out) await startSession(out.task || null);
+}
+async function switchTask(taskId){
+  if(!session || session.ending) return;
+  const now = Date.now(), segs = session.segments.map(g => Object.assign({}, g)), last = segs[segs.length - 1];
+  if((last.taskId || null) === (taskId || null)) return;
+  last.endAt = now;
+  const t = taskId ? allTasks.find(x => x.id === taskId) : null;
+  segs.push({ taskId:t ? t.id : null, taskName:t ? t.name : 'General', startAt:now, endAt:null });
+  try{ await sessRef('current').update({ segments:segs, lastSeenAt:now }); session.segments = segs; session.lastSeenAt = now; render(); }
+  catch(e){ toast('Couldn\'t switch just now — try again.', true); render(); }
+}
+async function heartbeat(){
+  if(!session || session.ending || sessStale || !myUid || !db) return;
+  const now = Date.now();
+  // A long gap since we last saw her (laptop asleep, phone locked, tab frozen) is never quietly counted as work: ask her instead.
+  if(now - session.lastSeenAt > SESS_STALE){ sessStale = true; render(); return; }
+  session.lastSeenAt = now;
+  try{ await sessRef('current').update({ lastSeenAt:now }); }catch(e){}
+}
+function onVisible(){
+  if(document.hidden || !session || session.ending) return;
+  if(!sessStale && Date.now() - session.lastSeenAt > SESS_STALE){ sessStale = true; render(); } else heartbeat();
+}
+async function stillGoing(){
+  if(!session) return;
+  sessStale = false; session.lastSeenAt = Date.now();
+  try{ await sessRef('current').update({ lastSeenAt:session.lastSeenAt }); }catch(e){}
+  render();
+}
+async function stopSession(defaultEndMs){
+  if(!session || session.ending) return;
+  const endDefault = Math.min(Date.now(), defaultEndMs || Date.now());
+  const segs0 = segmentsClosedAt(endDefault);
+  const names = [...new Set(segs0.map(g => g.taskName).filter(n => n && n !== 'General'))];
+  const out = await askFields('Nice work — how did it go?', [
+    { key:'end', label:'You finished at', type:'time', value:hmValue(endDefault), required:true, help:'You started at ' + hm(session.startAt) + '. Change this if you finished earlier.' },
+    { key:'what', label:'What did you work on? (optional)', type:'textarea', rows:2, value: names.length ? 'Worked on: ' + names.join(', ') : '' },
+    { key:'how', label:'How did you do it? (optional — tools, approach, what you learned)', type:'textarea', rows:3, placeholder:'This is for you and your portfolio. Only you can see it.' },
+  ], { confirmText:'Save session', intro:'You\'ve been at it for about ' + fmtDur((endDefault - session.startAt) / 60000) + (segs0.length ? ' — ' + segSummary(segs0) + '.' : '.'),
+       validate: o => resolveEnd(o.end) <= session.startAt ? 'The finish time has to be after you started (' + hm(session.startAt) + ').' : null });
+  if(!out) return;
+  const endMs = resolveEnd(out.end);
+  if(endMs - session.startAt > SESS_MAX_H * 3600000){
+    const go = await confirmDialog('That\'s a long session', 'That comes to ' + fmtDur((endMs - session.startAt) / 60000) + '. Is that right? If not, go back and change the finish time.', 'Yes, that\'s right');
+    if(!go) return;
+  }
+  await finishSession(endMs, out.what || '', out.how || '');
+}
+async function finishSession(endMs, what, how){
+  const sid = session.pendingSid || ('s-' + session.startAt + '-' + Math.random().toString(36).slice(2, 5));
+  session.pendingSid = sid; session.ending = true;
+  const segs = segmentsClosedAt(endMs), cw = weekStartISO(todayISO()), before = weekUsedMin(cw);
+  try{ await sessRef('current').update({ pendingSid:sid }); }catch(e){}
+  try{ await sessRef(sid).set({ startAt:session.startAt, endAt:endMs, segments:segs, what, how, createdAt:Date.now() }); }
+  catch(e){ session.ending = false; toast('Couldn\'t save that just now. Nothing was lost — try “I\'m done” again.', true); render(); return; }
+  if(!(await applySessionTime(sid, segs, []))){ session.ending = false; toast('Couldn\'t add the time to a task. Nothing was lost — press “I\'m done” again.', true); render(); return; }
+  try{ await sessRef('current').delete(); }catch(e){}
+  session = null; sessStale = false; render();
+  const cap = capFor(cw), used = weekUsedMin(cw), total = segs.reduce((s, g) => s + Math.round((g.endAt - g.startAt) / 60000), 0);
+  toast(used >= cap * 60 && before < cap * 60 ? 'That\'s your ' + cap + 'h for the week — new tasks open again on Monday. Rest well. 🌿' : 'Saved to your diary — ' + fmtDur(total) + ' ✓');
+  checkRemindersAfterStop();
+}
+async function discardSession(){
+  const go = await confirmDialog('Discard this session?', 'The time won\'t be saved anywhere. (If you already worked and just want to stop, use “I\'m done” instead.)', 'Discard', true);
+  if(!go || !session) return;
+  try{ await sessRef('current').delete(); }catch(e){ toast('Couldn\'t discard it just now.', true); return; }
+  session = null; sessStale = false; render();
+}
+async function checkRemindersAfterStop(){
+  return;   // demo: reminders are off
+  if(amOwner || !db) return;
+  await new Promise(r => setTimeout(r, 700));
+  if(document.querySelector('.modal-overlay')) return;
+  const due = dueReminders(new Date(), true);
+  if(due.length) await openCheckin(due, false);
+}
+
+/* ---- the card at the top of her view ---- */
+function welcomeLine(){
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning 🌤 No rush — start whenever it feels right, and I\'ll keep the time for you.'
+    : h < 17 ? 'Hi again 🌿 Whenever you\'re ready to start, I\'ll gently keep the time for you.'
+    : 'Good evening 🌙 If you\'re working tonight, thank you for the effort. Start whenever you like.';
+}
+function renderSessionCard(){
+  const host = document.getElementById('sessionCard'); if(!host) return;
+  host.replaceChildren();
+  const preview = amOwner && previewMode;
+  if(amOwner && !previewMode){ host.classList.add('hidden'); return; }
+  if(!preview && !myUid){ host.classList.add('hidden'); return; }
+  const tasks = inProgressTasks();
+  if(!preview && session){
+    const seg = session.segments[session.segments.length - 1], elapsed = Math.max(0, Math.round((Date.now() - session.startAt) / 60000));
+    const card = el('div', { class:'session-card live' }, el('div', { style:'font-weight:700; color:var(--green-ink);', text:'🟢 Working since ' + hm(session.startAt) + ' · ' + fmtDur(elapsed) }));
+    if(sessStale){
+      card.appendChild(noteBox('Welcome back 💛 You started at ' + hm(session.startAt) + ' and I last saw you at ' + hm(session.lastSeenAt) + '. Are you still going?', true));
+      card.appendChild(el('div', { class:'actions' }, btn('Still going', 'btn-primary', () => stillGoing()), btn('I finished earlier…', 'btn-ghost', () => stopSession(session.lastSeenAt + 120000))));
+    } else {
+      const sel = el('select', { id:'sessTask' }, el('option', { value:'', text:'General / something else' }), tasks.map(t => el('option', { value:t.id, text:t.name })));
+      sel.value = seg.taskId || ''; sel.onchange = () => switchTask(sel.value || null);
+      card.appendChild(el('div', { class:'field', style:'margin:8px 0;' }, el('label', { text:'Now working on' }), sel));
+      card.appendChild(el('div', { class:'actions' }, btn('✓ I\'m done', 'btn-primary', () => stopSession()), btn('Discard', 'btn-ghost', () => discardSession())));
+    }
+    host.appendChild(card); host.classList.remove('hidden'); return;
+  }
+  if(!preview && Number(lsGet('tt_sess_snooze') || 0) > Date.now()){ host.classList.add('hidden'); return; }
+  const sel = el('select', { id:'sessTask' }, el('option', { value:'', text:'General / something else' }), tasks.map(t => el('option', { value:t.id, text:t.name })));
+  if(tasks.length === 1) sel.value = tasks[0].id;
+  host.appendChild(el('div', { class:'session-card' },
+    el('div', { class:'modal-title', text:'💛 Ready when you are' }), el('p', { class:'modal-intro', style:'margin-bottom:10px;', text:welcomeLine() }),
+    el('div', { class:'field', style:'margin:0 0 8px;' }, el('label', { text:'What are you starting with?' }), sel),
+    el('div', { class:'actions' }, btn('▶ Start working', 'btn-primary', () => startSession(sel.value || null)), btn('Not now', 'btn-ghost', () => { lsSet('tt_sess_snooze', String(Date.now() + 3 * 3600000)); renderSessionCard(); })),
+    el('div', { class:'help', style:'margin-top:8px;', text:'🔒 Your work diary is private — only you can see it. Nora only sees the time added to each task.' })));
+  host.classList.remove('hidden');
+}
+
+/* ---- the diary ---- */
+function sessionsIn(range){
+  const now = new Date(), today = localISO(now);
+  const pm = new Date(now.getFullYear(), now.getMonth() - 1, 1), lastMonth = pm.getFullYear() + '-' + pad(pm.getMonth() + 1);
+  return diary.filter(d => {
+    const day = localISO(new Date(d.startAt));
+    if(range === 'recent') return d.startAt >= now.getTime() - 14 * 86400000;
+    if(range === 'week') return weekStartISO(day) === weekStartISO(today);
+    if(range === 'month') return day.slice(0, 7) === today.slice(0, 7);
+    if(range === 'lastmonth') return day.slice(0, 7) === lastMonth;
+    return true;
+  }).sort((a, b) => a.startAt - b.startAt);
+}
+function diaryText(range, label){
+  const list = sessionsIn(range), L = ['WORK DIARY — ' + label, ''];
+  list.forEach(d => {
+    L.push(dayLabel(d.startAt) + ' · ' + hm(d.startAt) + ' – ' + hm(d.endAt) + ' · ' + fmtDur(sessMin(d)));
+    const by = {}; (d.segments || []).forEach(g => { const k = g.taskName || 'General'; by[k] = (by[k] || 0) + Math.round((g.endAt - g.startAt) / 60000); });
+    L.push('  Worked on: ' + Object.keys(by).map(k => k + ' (' + fmtDur(by[k]) + ')').join(' · '));
+    if(d.what) L.push('  What I did: ' + d.what);
+    if(d.how) L.push('  How: ' + d.how);
+    L.push('');
+  });
+  if(!list.length) L.push('(no sessions in this period)', '');
+  L.push('Total: ' + fmtDur(list.reduce((s, d) => s + sessMin(d), 0)) + ' across ' + list.length + ' session' + (list.length === 1 ? '' : 's'));
+  return L.join('\n');
+}
+function portfolioText(range, label){
+  const pm = new Date(); pm.setDate(1); pm.setMonth(pm.getMonth() - 1);
+  const keep = { all:null, month:todayISO().slice(0, 7), lastmonth:pm.getFullYear() + '-' + pad(pm.getMonth() + 1) }[range];
+  const tasksDone = allTasks.filter(t => ['approved','payment_sent','paid'].includes(t.status) && (!keep || (t.approvedAt && localISO(new Date(t.approvedAt)).slice(0, 7) === keep)))
+    .sort((a, b) => String(a.approvedAt).localeCompare(String(b.approvedAt)));
+  const L = ['PORTFOLIO ENTRIES — ' + label, '(Remove client names and private details before sharing anywhere.)', ''];
+  tasksDone.forEach(t => {
+    L.push('• ' + t.name + ' — ' + (SKILLS[t.skill || 'other'] || '').replace(/^\S+\s/, '') + ' — ' + fmtDate(t.approvedAt));
+    if(loggedMin(t)) L.push('  Time: ' + fmtDur(loggedMin(t)));
+    if(safeUrl(t.deliverableUrl)) L.push('  Work: ' + t.deliverableUrl);
+    const mine = diary.filter(d => (d.segments || []).some(g => g.taskId === t.id));
+    const what = [...new Set(mine.map(d => d.what).filter(Boolean))], how = [...new Set(mine.map(d => d.how).filter(Boolean))];
+    what.forEach(w => L.push('  What I did: ' + w)); how.forEach(h => L.push('  How I did it: ' + h));
+    if(t.feedbackGood) L.push('  Feedback: 👍 ' + t.feedbackGood + (t.feedbackGrow ? '  🌱 ' + t.feedbackGrow : ''));
+    else if(t.feedbackGrow) L.push('  Feedback: 🌱 ' + t.feedbackGrow);
+    if(t.reflection) L.push('  What I learned: ' + t.reflection);
+    L.push('');
+  });
+  if(!tasksDone.length) L.push('(no approved work in this period yet)', '');
+  return L.join('\n');
+}
+async function editSession(d){
+  const first = d.segments[0], last = d.segments[d.segments.length - 1], sd = localISO(new Date(d.startAt));
+  const out = await askFields('Edit this session', [
+    { key:'start', label:'Started at', type:'time', value:hmValue(d.startAt), required:true, help: dayLabel(d.startAt) },
+    { key:'end', label:'Finished at', type:'time', value:hmValue(d.endAt), required:true },
+    { key:'what', label:'What I did', type:'textarea', rows:2, value:d.what || '' },
+    { key:'how', label:'How I did it', type:'textarea', rows:3, value:d.how || '' },
+  ], { confirmText:'Save changes', intro: d.segments.length > 1 ? 'This session had ' + d.segments.length + ' parts. Changing the times adjusts the first start and the last finish.' : null });
+  if(!out) return;
+  const ns = atTime(sd, out.start); let ne = atTime(sd, out.end); if(ne <= ns) ne += 86400000;
+  if(ns >= (first.endAt || ne) || ne <= last.startAt){ toast('Those times don\'t fit this session\'s parts — adjust them a little.', true); return; }
+  const segs = d.segments.map(g => Object.assign({}, g)); segs[0].startAt = ns; segs[segs.length - 1].endAt = ne;
+  const upd = { startAt:ns, endAt:ne, segments:segs, what:out.what || '', how:out.how || '' };
+  if(!(await applySessionTime(d.id, segs, d.segments))){ toast('Couldn\'t update the task time. Nothing was changed on your diary.', true); return; }
+  try{ await sessRef(d.id).update(upd); Object.assign(d, upd); toast('Session updated ✓'); }catch(e){ toast('Couldn\'t save those changes.', true); }
+}
+async function deleteSession(d){
+  const go = await confirmDialog('Delete this session?', 'It\'s removed from your diary, and the time it added to tasks is taken off again.', 'Delete', true);
+  if(!go) return;
+  if(!(await applySessionTime(d.id, [], d.segments))){ toast('Couldn\'t update the task time, so nothing was deleted.', true); return; }
+  try{ await sessRef(d.id).delete(); diary = diary.filter(x => x.id !== d.id); toast('Session deleted'); }catch(e){ toast('Couldn\'t delete that just now.', true); }
+}
+async function addMissedSession(){
+  const today = todayISO(), tasks = allTasks.filter(t => t.status !== 'cancelled' && t.status !== 'open' && t.status !== 'assigned_pending');
+  const out = await askFields('Add a session I forgot', [
+    { key:'date', label:'Day', type:'date', value:today, max:today, min:addDaysISO(today, -60), required:true },
+    { key:'start', label:'Started at', type:'time', required:true }, { key:'end', label:'Finished at', type:'time', required:true },
+    { key:'task', label:'What was it for?', type:'select', value:'', options:[{ value:'', label:'General / something else' }].concat(tasks.map(t => ({ value:t.id, label:t.name }))) },
+    { key:'what', label:'What I did (optional)', type:'textarea', rows:2 }, { key:'how', label:'How I did it (optional)', type:'textarea', rows:2 },
+  ], { confirmText:'Add it', intro:'No worries — it happens to everyone.',
+       validate: o => { const s = atTime(o.date, o.start); let e = atTime(o.date, o.end); if(e <= s) e += 86400000; return e > Date.now() ? 'That time is in the future — check the day and times.' : null; } });
+  if(!out) return;
+  const s = atTime(out.date, out.start); let e = atTime(out.date, out.end); if(e <= s) e += 86400000;
+  const t = out.task ? allTasks.find(x => x.id === out.task) : null, sid = 's-' + s + '-' + Math.random().toString(36).slice(2, 5);
+  const segs = [{ taskId:t ? t.id : null, taskName:t ? t.name : 'General', startAt:s, endAt:e }];
+  try{ await sessRef(sid).set({ startAt:s, endAt:e, segments:segs, what:out.what || '', how:out.how || '', createdAt:Date.now(), added:true }); }catch(err){ toast('Couldn\'t save that.', true); return; }
+  if(!(await applySessionTime(sid, segs, []))) toast('Saved to your diary, but the time couldn\'t be added to the task.', true); else toast('Added ✓');
+}
+async function openDiary(){
+  if(!myUid){ await blockDialog('Work diary', 'Your private work diary isn\'t available in this view.'); return; }
+  let range = 'recent';
+  const RANGES = [['recent', 'Last 14 days'], ['week', 'This week'], ['month', 'This month'], ['lastmonth', 'Last month'], ['all', 'All time']];
+  const label = () => RANGES.find(r => r[0] === range)[1];
+  const r = await openModal(close => {
+    const sel = el('select'); RANGES.forEach(x => sel.appendChild(el('option', { value:x[0], text:x[1] }))); sel.setAttribute('data-key', 'range');
+    const host = el('div', {});
+    const paint = () => {
+      host.replaceChildren();
+      const list = sessionsIn(range).slice().reverse();
+      if(!list.length) host.appendChild(el('p', { class:'help', text:'No sessions here yet. When you press “Start working” and “I\'m done”, they\'ll appear here.' }));
+      let wk = null;
+      list.forEach(d => {
+        const w = weekStartISO(localISO(new Date(d.startAt)));
+        if(w !== wk){ wk = w; const tot = sessionsIn('all').filter(x => weekStartISO(localISO(new Date(x.startAt))) === w).reduce((s, x) => s + sessMin(x), 0); host.appendChild(el('div', { class:'section-title', style:'font-size:13px; margin:14px 0 6px;', text:weekLabel(w) + ' — ' + fmtDur(tot) })); }
+        const by = {}; (d.segments || []).forEach(g => { const k = g.taskName || 'General'; by[k] = (by[k] || 0) + Math.round((g.endAt - g.startAt) / 60000); });
+        host.appendChild(el('div', { class:'note-box calm' },
+          el('div', { style:'font-weight:700;', text:dayLabel(d.startAt) + ' · ' + hm(d.startAt) + ' – ' + hm(d.endAt) + ' · ' + fmtDur(sessMin(d)) }),
+          el('div', { class:'meta-row', style:'margin:4px 0;' }, Object.keys(by).map(k => el('span', { class:'chip', text:k + ' · ' + fmtDur(by[k]) }))),
+          d.what ? el('div', { style:'font-size:13px;', text:'What I did: ' + d.what }) : null, d.how ? el('div', { style:'font-size:13px;', text:'How: ' + d.how }) : null,
+          el('div', { class:'actions', style:'margin-top:6px;' }, el('button', { class:'btn-ghost', style:'min-height:32px;', text:'Edit', onclick: async () => { await editSession(d); paint(); } }),
+            el('button', { class:'btn-ghost', style:'min-height:32px;', text:'Delete', onclick: async () => { await deleteSession(d); paint(); } }))));
+      });
+    };
+    sel.onchange = () => { range = sel.value; paint(); }; paint();
+    return el('div', {}, el('div', { class:'modal-title', text:'📓 My work diary' }),
+      el('p', { class:'modal-intro', text:'🔒 Private — only you can see this. Nora only sees the time added to each task. It\'s yours to keep for your portfolio.' }), sel, host,
+      el('div', { class:'actions' }, el('button', { class:'btn-ghost', text:'➕ Add a session I forgot', onclick: async () => { await addMissedSession(); paint(); } }),
+        el('button', { class:'btn-primary', text:'Copy diary', onclick: () => copyWithToast(diaryText(range, label())) }),
+        el('button', { class:'btn-ghost', text:'Copy portfolio entries', onclick: () => { const pr = (range === 'month' || range === 'lastmonth') ? range : 'all'; copyWithToast(portfolioText(pr, pr === 'all' ? 'All time' : label())); } }),
+        el('button', { class:'btn-ghost', text:'Close', onclick: () => close(null) })));
+  });
+  return r;
+}
+
+function openBackup(){
+  if(!amOwner) return;
+  const data = JSON.stringify({ exportedAt:new Date().toISOString(), weekOverrides:capSettings.weeks, tasks:allTasks, recurring:allRules, reminderLinks }, null, 2);
+  return showTextModal('Backup', 'Copy this and keep it somewhere safe and private (a locked note or your Drive). It contains every task, note and payment record.', data);
+}
+function openGuide(){
+  const V = amOwner && !previewMode;
+  const H = t => el('h4', { text:t }), P = t => el('p', { text:t });
+  const body = V ? [
+    H('Your part, step by step'),
+    P('1. Post a task for the open pool, or assign it directly — with a price inside the tier range, a time estimate, and what “done” means.'),
+    P('2. When work is submitted, review it. Approve it (and leave feedback so it becomes a chance to learn), or send it back with a fresh, fair deadline.'),
+    P('3. After you approve, send the payment and mark it sent. The task only closes once the money is confirmed as received on the other end — you can\'t close it yourself, and that protects you both.'),
+    H('The 20-hour weekly limit'),
+    P('You can\'t assign more than 20 hours of tasks into any week (Monday to Sunday). The tool counts the time logged plus what\'s already committed; tasks longer than a week are spread across the weeks they run, and re-spread each time time is logged. When a week is full, use “Available from” to schedule the task for a later week. A week\'s hours can be lowered (exams, family) but never raised.'),
+    H('What you can do along the way'),
+    P('Work sessions and the work diary are private to the person doing the work — you only ever see the time added to each task.'),
+    P('Change a task\'s price or timing before it\'s taken — after that, every change is logged and shown. Move the deadline when a delay was on your side. Unblock when a blocker is flagged; the deadline moves by the days waited. Cancel with a reason. Leave notes, and message on WhatsApp from any task.'),
+    H('Your money view'),
+    P('“Payment pending” shows what you still need to pay by this Friday, with the total pending underneath. “Spent” shows what you\'ve paid out this month and overall.'),
+    H('One reminder'),
+    P('Keep customer names and private details out of task text. Both of you can see everything in it.'),
+  ] : [
+    H('How a task goes'),
+    P('1. Pick an open task, or accept one Nora assigns to you. You choose your own deadline within the window.'),
+    P('2. Work on it and log your time as you go — hours and minutes. Tick off “Done means” as you finish each part.'),
+    P('3. Submit with a link to your work. Nora reviews it and either approves it or sends it back with a fresh deadline.'),
+    P('4. Once it\'s approved, Nora sends your payment. The task only becomes done when you confirm the money reached you.'),
+    H('Your 20-hour week'),
+    P('Tasks can never add up to more than 20 hours in a week (Monday to Sunday). The time you log counts in the week you worked it, and bigger tasks are spread across the weeks they run. When your week is full, new tasks wait until Monday — that\'s what the limit is for. You can lower any week\'s hours (holiday, family, rest) — set 0 for time off — but nobody can raise them.'),
+    H('Things you can always do'),
+    P('Propose a different price, ask for more time, say “not this week”, flag that you\'re blocked (your deadline pauses until you\'re unblocked), report a payment that hasn\'t arrived, and leave notes or questions. Asking is always fine, and none of it is ever held against you.'),
+    H('Your work diary'),
+    P('When you sit down to work, press “Start working” — it keeps the time for you, so you never have to guess. When you\'re done, press “I\'m done” and add a line about what you did and how you did it. Your diary is private: only you can see it, and it\'s yours to keep for your portfolio. Nora only sees the total time added to each task.'),
+    H('Just for you'),
+    P('The 🎯 Focus button pins one task at the top so you can work on one thing at a time. It\'s saved only on this device — Nora can\'t see it.'),
+    H('One reminder'),
+    P('Keep customer names and private details out of task text. Both of you can see everything in it.'),
+  ];
+  return openModal(close => el('div', { class:'guide' }, el('div', { class:'modal-title', text:'How this works' }), body,
+    el('div', { class:'actions' }, el('button', { class:'btn-primary', text:'Got it', onclick: () => close(null) }))));
+}
+
+/* ============ filters ============ */
+function stageOf(t){
+  if(isScheduled(t)) return 'scheduled';
+  return ({ open:'open', assigned_pending:'assigned', claimed:'progress', needs_revision:'progress', submitted:'review', approved:'payment', payment_sent:'payment', paid:'done', cancelled:'cancelled' })[t.status] || 'open';
+}
+function filtersActive(){ return !!(filters.q || filters.skill || filters.tier || filters.min !== '' || filters.max !== '' || filters.due || filters.stage || filters.mine); }
+function needsMyMove(t){
+  const neg = t.negotiation || {}, ex = t.extension || {};
+  if(viewerOwner){
+    return t.status === 'submitted' || t.status === 'approved' || isBlocked(t) || (['open','assigned_pending'].includes(t.status) && neg.status === 'pending') ||
+      (['claimed','needs_revision'].includes(t.status) && ex.status === 'pending');
+  }
+  return (t.status === 'assigned_pending' && !isScheduled(t) && neg.status !== 'pending') || neg.status === 'countered' || ((t.status === 'claimed' || t.status === 'needs_revision') && !isBlocked(t)) || t.status === 'payment_sent';
+}
+function passesFilters(t){
+  const f = filters;
+  if(f.q){ const s = (t.name + ' ' + (t.description || '')).toLowerCase(); if(!s.includes(f.q.toLowerCase())) return false; }
+  if(f.skill && (t.skill || 'other') !== f.skill) return false;
+  if(f.tier && t.tier !== f.tier) return false;
+  const price = priceOf(t);
+  if(f.min !== '' && price < Number(f.min)) return false;
+  if(f.max !== '' && price > Number(f.max)) return false;
+  if(f.stage && stageOf(t) !== f.stage) return false;
+  if(f.mine && !needsMyMove(t)) return false;
+  if(f.due){
+    const d = dueDateOf(t), today = todayISO();
+    if(f.due === 'none'){ if(d) return false; }
+    else{
+      if(!d) return false;
+      if(f.due === 'overdue' && !(d < today)) return false;
+      if(f.due === 'today' && d !== today) return false;
+      if(f.due === 'week' && !(d >= today && d <= addDaysISO(today, 7))) return false;
+    }
+  }
+  return true;
+}
+function sortTasks(list){
+  const cmp = {
+    due: (a, b) => { const x = dueDateOf(a), y = dueDateOf(b); if(!x && !y) return 0; if(!x) return 1; if(!y) return -1; return x.localeCompare(y); },
+    price_desc: (a, b) => priceOf(b) - priceOf(a), price_asc: (a, b) => priceOf(a) - priceOf(b),
+    newest: (a, b) => String(b.createdAt).localeCompare(String(a.createdAt)), oldest: (a, b) => String(a.createdAt).localeCompare(String(b.createdAt)),
+    name: (a, b) => a.name.localeCompare(b.name),
+    skill: (a, b) => SKILLS[a.skill || 'other'].localeCompare(SKILLS[b.skill || 'other']) || a.name.localeCompare(b.name),
+  }[filters.sort];
+  return cmp ? list.slice().sort(cmp) : list;
+}
+function setupFilterBar(){
+  const fill = (id, opts) => { const s = document.getElementById(id); opts.forEach(o => s.appendChild(el('option', { value:o[0], text:o[1] }))); };
+  fill('fSort', [['default','Sort: by stage'],['due','Due date (soonest)'],['price_desc','Price: high → low'],['price_asc','Price: low → high'],['newest','Newest first'],['oldest','Oldest first'],['skill','Skill area'],['name','Name A–Z']]);
+  fill('fSkill', [['','Any skill area']].concat(Object.keys(SKILLS).map(k => [k, SKILLS[k]])));
+  fill('fTier', [['','Any tier']].concat(Object.keys(TIERS).map(k => [k, TIERS[k].label])));
+  fill('fStage', [['','Any stage']].concat(Object.keys(STAGES).map(k => [k, STAGES[k]])));
+  fill('fDue', [['','Any date'],['overdue','Overdue'],['today','Due today'],['week','Due in the next 7 days'],['none','No date yet']]);
+  const bind = (id, key, evt) => document.getElementById(id).addEventListener(evt || 'input', e => { filters[key] = e.target.value; render(); });
+  bind('fSearch', 'q'); bind('fSort', 'sort', 'change'); bind('fSkill', 'skill', 'change'); bind('fTier', 'tier', 'change');
+  bind('fStage', 'stage', 'change'); bind('fDue', 'due', 'change'); bind('fMin', 'min'); bind('fMax', 'max');
+  document.getElementById('fMine').onclick = () => { filters.mine = !filters.mine; render(); };
+  document.getElementById('fOverdue').onclick = () => { filters.due = filters.due === 'overdue' ? '' : 'overdue'; render(); };
+  document.getElementById('fWeek').onclick = () => { filters.due = filters.due === 'week' ? '' : 'week'; render(); };
+  document.getElementById('fClear').onclick = () => { Object.assign(filters, { q:'', skill:'', tier:'', min:'', max:'', due:'', stage:'', mine:false }); render(); };
+}
+function syncFilterUI(shown){
+  const set = (id, v) => { const n = document.getElementById(id); if(n && n.value !== String(v)) n.value = v; };
+  set('fSearch', filters.q); set('fSort', filters.sort); set('fSkill', filters.skill); set('fTier', filters.tier);
+  set('fStage', filters.stage); set('fDue', filters.due); set('fMin', filters.min); set('fMax', filters.max);
+  document.getElementById('fMine').classList.toggle('on', filters.mine);
+  document.getElementById('fOverdue').classList.toggle('on', filters.due === 'overdue');
+  document.getElementById('fWeek').classList.toggle('on', filters.due === 'week');
+  document.getElementById('fClear').classList.toggle('hidden', !filtersActive());
+  document.getElementById('filterBar').classList.toggle('hidden', !allTasks.length);
+  document.getElementById('fInfo').textContent = filtersActive() ? 'Showing ' + shown + ' of ' + allTasks.length + ' tasks' : '';
+}
+
+/* ============ rendering ============ */
+function btn(label, cls, fn){
+  const b = el('button', { class:cls, text:label });
+  b.onclick = async () => { if(b.disabled) return; b.disabled = true; try{ await fn(); } finally { b.disabled = false; } };
+  return b;
+}
+function noteBox(text, calm){ return el('div', { class:'note-box' + (calm ? ' calm' : ''), text }); }
+function countdownChip(iso){
+  const s = el('span', { class:'chip', 'data-deadline':iso || '' });
+  s.textContent = formatCountdown(iso); if(pastDeadline(iso)) s.classList.add('flag');
+  return s;
+}
+function statusLabel(t){
+  const V = viewerOwner, s = t.status;
+  if(isScheduled(t)) return '🗓 Scheduled';
+  if(s === 'claimed' && isBlocked(t)) return '🚧 Blocked';
+  return ({
+    open:'🟡 Open', assigned_pending: V ? '🟠 Waiting for Sam to Start' : '🟠 Ready for You to Start',
+    claimed:'🔵 In Progress', needs_revision:'🟤 Changes Requested',
+    submitted: V ? '🟣 Ready for Your Review' : '🟣 Submitted — In Review',
+    approved:'✅ Approved — Payment Pending',
+    payment_sent: V ? '💌 Payment Sent — Awaiting Sam\'s Confirmation' : '💌 Payment Sent — Please Confirm',
+    paid:'✅ Paid & Confirmed', cancelled:'⚪ Cancelled',
+  })[s] || s;
+}
+function feedbackBox(t){
+  if(!t.feedbackGood && !t.feedbackGrow) return null;
+  return noteBox((viewerOwner ? 'Your feedback: ' : '💬 Nora\'s feedback: ') + [t.feedbackGood ? '👍 ' + t.feedbackGood : '', t.feedbackGrow ? '🌱 ' + t.feedbackGrow : ''].filter(Boolean).join('   '), true);
+}
+function criteriaBlock(t){
+  const c = t.criteria || [];
+  if(!c.length) return null;
+  const interactive = !viewerOwner && ['claimed','needs_revision'].includes(t.status);
+  const wrap = el('div', { class:'crit-wrap' }, el('div', { class:'help', style:'margin:0 0 2px;', text:'Done means (' + c.filter(x => x.done).length + '/' + c.length + ')' }));
+  c.forEach((x, i) => {
+    const cb = el('input', { type:'checkbox' }); cb.checked = !!x.done; cb.disabled = !interactive;
+    cb.onchange = () => { toggleCriterion(t, i, cb.checked); };
+    wrap.appendChild(el('label', { class:'crit' }, cb, el('span', { text:x.text })));
+  });
+  return wrap;
+}
+function timeChip(t, withRate){
+  const m = loggedMin(t);
+  if(!m) return null;
+  return el('span', { class:'chip', text:'⏱ ' + fmtDur(m) + (withRate ? ' · ≈ $' + rateOf(t) + '/h' : (estMin(t) ? ' of ~' + fmtDur(estMin(t)) + ' logged' : ' logged')) });
+}
+
+function spreadNote(t){
+  const sh = plannedShares(t), ws = Object.keys(sh).filter(w => sh[w] >= 1).sort();
+  if(ws.length < 2) return null;
+  return noteBox('📆 This task runs across ' + ws.length + ' weeks, so its remaining hours are spread over them: ' + ws.map(w => weekLabel(w) + ' ≈ ' + fmtDur(sh[w])).join(' · ') + '. Time logged counts in the week it\'s worked, and whatever is left re-spreads automatically.', true);
+}
+function stageContent(t, opts){
+  const V = viewerOwner, out = [], acts = [], sched = isScheduled(t);
+  const neg = t.negotiation || { status:'none' };
+  const link = (u, label) => safeUrl(u) ? el('a', { href:u, target:'_blank', rel:'noopener noreferrer', text:label, style:'color:var(--teal); font-weight:600;' }) : null;
+
+  if(t.status === 'open' || t.status === 'assigned_pending'){
+    out.push(el('div', { class:'meta-row' }, 'Posted ' + fmtDate(t.createdAt)));
+    if(t.status === 'assigned_pending'){ const sn = spreadNote(t); if(sn) out.push(sn); }
+    if(sched) out.push(noteBox('🗓 Available from ' + fmtDate(t.availableFrom) + (V ? ' — it can\'t be claimed before then.' : ' — you\'ll be able to take it on then. Nothing needed from you yet.'), true));
+    if(neg.status === 'pending'){
+      out.push(noteBox(V ? '💬 She proposed ' + fmtMoney(neg.proposedPrice) + (neg.reason ? ' — “' + neg.reason + '”' : '')
+                         : '💬 You proposed ' + fmtMoney(neg.proposedPrice) + '. Waiting for Nora to respond.'));
+      if(V){ acts.push(btn('Accept', 'btn-primary', () => respondToProposal(t, 'accept')), btn('Decline', 'btn-danger', () => respondToProposal(t, 'decline')), btn('Counter', 'btn-ghost', () => respondToProposal(t, 'counter'))); }
+      else acts.push(btn('Withdraw proposal', 'btn-ghost', () => withdrawProposal(t)));
+    } else if(neg.status === 'countered'){
+      out.push(noteBox(V ? 'You countered with ' + fmtMoney(neg.counterPrice) + '. Waiting for her.' : '💬 Nora countered with ' + fmtMoney(neg.counterPrice) + (neg.counterNote ? ' — “' + neg.counterNote + '”' : '')));
+      if(!V) acts.push(btn('Accept counter', 'btn-primary', () => respondToCounter(t, true)), btn('Decline', 'btn-ghost', () => respondToCounter(t, false)));
+    } else {
+      if(neg.status === 'declined') out.push(noteBox(V ? 'You kept the original price after her proposal.' : 'Your price proposal wasn\'t accepted — the listed price stands, or you can propose again.', true));
+      if(!V){
+        if(!sched) acts.push(btn(t.status === 'assigned_pending' ? 'Accept & Set My Deadline' : 'Claim This Task', 'btn-primary', () => claimTask(t)));
+        acts.push(btn('💬 Propose Different Price', 'btn-ghost', () => proposePrice(t)));
+        if(t.status === 'assigned_pending' && !sched) acts.push(btn('Not this week', 'btn-ghost', () => deferTask(t)));
+      }
+    }
+  }
+
+  if(t.status === 'claimed' || t.status === 'needs_revision'){
+    const blocked = isBlocked(t);
+    out.push(el('div', { class:'meta-row' }, el('span', {}, '🎯 ' + (V ? 'Sam\'s' : 'Your') + ' deadline: ', el('b', { text:fmtDate(t.herDeadline) })),
+      blocked ? el('span', { class:'chip', text:'⏸ Deadline paused' }) : countdownChip(t.herDeadline), timeChip(t, false)));
+    { const sn = spreadNote(t); if(sn) out.push(sn); }
+    if(t.status === 'needs_revision' && t.revisionNote) out.push(noteBox('🟤 Changes requested: “' + t.revisionNote + '”'));
+    if(blocked) out.push(noteBox(V ? '🚧 She\'s blocked and waiting on you: “' + t.blocked.reason + '”. Her deadline is paused until you unblock her.' : '🚧 You flagged a blocker: “' + t.blocked.reason + '”. Your deadline is paused while you wait for Nora.'));
+    else if(pastDeadline(t.herDeadline)) out.push(noteBox(V ? '⏰ Past her deadline and not yet submitted — might be worth a quick check-in.' : '⏰ Your deadline has passed. If you need more time, ask — it\'s always fine to ask.', true));
+    const ex = t.extension || { status:'none' };
+    if(ex.status === 'pending'){
+      out.push(noteBox(V ? '⏳ She asked for more time — until ' + fmtDate(ex.date) + (ex.reason ? ': “' + ex.reason + '”' : '') : '⏳ You asked for more time until ' + fmtDate(ex.date) + '. Waiting for Nora.'));
+      if(V) acts.push(btn('Approve extension', 'btn-primary', () => respondToExtension(t, true)), btn('Decline', 'btn-ghost', () => respondToExtension(t, false)));
+    } else if(ex.status === 'declined' && !V){
+      out.push(noteBox('Your extension request wasn\'t approved' + (ex.note ? ': “' + ex.note + '”' : '') + '. The current deadline stands.', true));
+    }
+    if(V){
+      if(blocked) acts.push(btn('Unblock & Update Deadline', 'btn-primary', () => unblockTask(t)));
+      else acts.push(btn('Adjust Sam\'s Deadline', 'btn-ghost', () => ownerAdjustDeadline(t)));
+    } else {
+      acts.push(btn(t.status === 'needs_revision' ? 'Resubmit' : 'Submit', 'btn-primary', () => submitTask(t)), btn('⏱ Log time', 'btn-ghost', () => logTime(t)));
+      if(!blocked) acts.push(btn('Adjust My Deadline', 'btn-ghost', () => adjustMyDeadline(t)));
+      if(ex.status !== 'pending' && !blocked) acts.push(btn('Ask for more time', 'btn-ghost', () => requestExtension(t)));
+      acts.push(blocked ? btn('No longer blocked', 'btn-ghost', () => clearBlockedSelf(t)) : btn('🚧 I\'m blocked', 'btn-ghost', () => setBlocked(t)));
+      if(!(opts && opts.focus)) acts.push(btn(focusId === t.id ? 'Unpin focus' : '🎯 Focus', 'btn-ghost', () => setFocus(focusId === t.id ? null : t.id)));
+      else acts.push(btn('Unpin focus', 'btn-ghost', () => setFocus(null)));
+    }
+  }
+
+  if(t.status === 'submitted'){
+    const d = daysSince(t.submittedAt);
+    out.push(el('div', { class:'meta-row' }, el('span', { class: V && d >= 2 ? 'flag' : '', text:'🕐 Submitted ' + fmtDate(t.submittedAt) + (d >= 1 ? ' (' + d + 'd ago)' : ' (today)') + (V && d >= 2 ? ' — waiting on your review' : '') }),
+      link(t.deliverableUrl, V ? '🔗 Open Sam\'s work' : '🔗 Open your work'), timeChip(t, true)));
+    if(t.submitNote) out.push(noteBox('📝 “' + t.submitNote + '”', true));
+    if(t.reflection) out.push(noteBox('💭 Trickiest part: “' + t.reflection + '”', true));
+    if(V) acts.push(btn('Approve', 'btn-primary', () => approveTask(t)), btn('Ask for Changes', 'btn-ghost', () => requestChanges(t)));
+    else out.push(noteBox('⏳ Waiting for Nora\'s review. You\'ll see the outcome right here.', true));
+  }
+
+  if(t.status === 'approved'){
+    const overdue = t.paymentDueDate && todayISO() > t.paymentDueDate;
+    out.push(el('div', { class:'meta-row' }, overdue ? el('span', { class:'flag', text:'💳 Payment was due ' + fmtDate(t.paymentDueDate) }) : el('span', {}, '💳 Payment due: ', el('b', { text:fmtDate(t.paymentDueDate) })), timeChip(t, true)));
+    const fb = feedbackBox(t); if(fb) out.push(fb);
+    if(t.paymentIssue) out.push(noteBox(V ? '⚠️ She says the last payment hasn\'t arrived: “' + (t.paymentIssueNote || 'no details given') + '”' : '⚠️ You reported the payment hasn\'t arrived. Nora has been notified.'));
+    if(V) acts.push(btn(t.paymentIssue ? '💸 Send Payment Again' : '💸 Send Payment', 'btn-primary', () => sendPayment(t)), btn('Change payment date', 'btn-ghost', () => adjustPaymentDate(t)));
+    else if(!t.paymentIssue) out.push(noteBox('✅ Approved — payment is on its way. You\'ll be asked to confirm once it\'s sent.', true));
+  }
+
+  if(t.status === 'payment_sent'){
+    const d = daysSince(t.paymentSentAt);
+    out.push(el('div', { class:'meta-row' }, '💌 Sent ' + fmtDate(t.paymentSentAt) + (t.paymentNote ? ' · ' + t.paymentNote : ''), timeChip(t, true)));
+    const fb = feedbackBox(t); if(fb) out.push(fb);
+    if(V) out.push(noteBox('⏳ Waiting for her to confirm she received it.' + (d >= 3 ? ' It\'s been ' + d + ' days — a gentle nudge may help.' : ''), true));
+    else acts.push(btn('💰 I Received It', 'btn-primary', () => confirmReceipt(t)), btn('⚠️ Haven\'t Gotten This Yet', 'btn-danger', () => disputePayment(t)));
+  }
+
+  if(t.status === 'paid'){
+    out.push(el('div', { class:'meta-row' }, '💸 Paid & confirmed ' + fmtDate(t.paidAt), link(t.deliverableUrl, '🔗 Work'), timeChip(t, true)));
+    const fb = feedbackBox(t); if(fb) out.push(fb);
+    if(t.reflection) out.push(noteBox('💭 “' + t.reflection + '”', true));
+  }
+
+  if(t.status === 'cancelled') out.push(noteBox('⚪ Cancelled ' + fmtDate(t.cancelledAt) + (t.cancelReason ? ': “' + t.cancelReason + '”' : ''), true));
+
+  if(acts.length) out.push(el('div', { class:'actions' }, acts));
+  return out;
+}
+
+function taskCard(t, opts){
+  const tier = TIERS[t.tier] || TIERS.simple;
+  const card = el('div', { class:'card', id: (opts && opts.focus) ? null : 'task-' + t.id });
+  card.appendChild(el('div', { class:'top-row' }, el('div', { class:'task-name', text:t.name }), el('span', { class:'badge ' + (isScheduled(t) ? 'scheduled' : t.status), text:statusLabel(t) })));
+  if(t.description) card.appendChild(el('div', { class:'desc', text:t.description }));
+  const cb = criteriaBlock(t); if(cb) card.appendChild(cb);
+  const meta = el('div', { class:'meta-row' }, el('span', { class:'chip', text:tier.label }));
+  if(t.skill && SKILLS[t.skill]) meta.appendChild(el('span', { class:'chip', text:SKILLS[t.skill] }));
+  meta.appendChild(el('span', {}, '💰 ', el('b', { text:fmtMoney(priceOf(t)) })));
+  if(estMin(t)) meta.appendChild(el('span', { class:'chip', text:'~' + fmtDur(estMin(t)) + ' of work' }));
+  meta.appendChild(el('span', { text:'⏳ ' + daysEn(t.durationDays) + ' once started' }));
+  if(t.cadence && CADENCE[t.cadence]) meta.appendChild(el('span', { class:'chip', text:'🔁 ' + CADENCE[t.cadence] }));
+  if(safeUrl(t.resourceUrl)) meta.appendChild(el('a', { href:t.resourceUrl, target:'_blank', rel:'noopener noreferrer', text:'🔗 Reference', style:'color:var(--teal); font-weight:600;' }));
+  card.appendChild(meta);
+  stageContent(t, opts).forEach(n => card.appendChild(n));
+
+  const extra = [];
+  if(viewerOwner){
+    extra.push(btn('✏️ Edit', 'btn-ghost', () => editTask(t)));
+    if(['open','assigned_pending','cancelled'].includes(t.status)) extra.push(btn('🗑️ Delete', 'btn-danger', () => deleteTask(t)));
+    else if(['claimed','needs_revision','submitted','approved','payment_sent'].includes(t.status)) extra.push(btn('Cancel task', 'btn-danger', () => cancelTask(t)));
+  }
+  extra.push(btn('💬 Add note', 'btn-ghost', () => addComment(t)));
+  const kind = suggestKind(t);
+  if(kind) extra.push(btn(viewerOwner ? '📲 Message Sam' : '📲 Message Nora', 'btn-ghost', () => openNotify(t, kind)));
+  card.appendChild(el('div', { class:'actions' }, extra));
+
+  const cm = t.comments || [];
+  if(cm.length){
+    const d = el('details', { class:'hist' }, el('summary', { text:'💬 Notes (' + cm.length + ')' }),
+      cm.map(c => el('div', { class:'hist-row' }, el('span', { class:'hist-date', text:fmtDate(c.at) }), el('span', { text:actor(c.by) + ': ' + c.text }))));
+    if(openNotes.has(t.id)) d.open = true;
+    d.addEventListener('toggle', () => { if(d.open) openNotes.add(t.id); else openNotes.delete(t.id); });
+    card.appendChild(d);
+  }
+  const h = t.history || [];
+  if(h.length){
+    const d = el('details', { class:'hist' }, el('summary', { text:'History (' + h.length + ')' }),
+      h.slice().reverse().map(e => el('div', { class:'hist-row' }, el('span', { class:'hist-date', text:fmtDate(e.at) }), el('span', { text:actor(e.by) + ' ' + e.text }))));
+    if(openHistory.has(t.id)) d.open = true;
+    d.addEventListener('toggle', () => { if(d.open) openHistory.add(t.id); else openHistory.delete(t.id); });
+    card.appendChild(d);
+  }
+  return card;
+}
+
+function buildFollowUps(){
+  const items = [], today = todayISO(), V = viewerOwner, me = V ? 'owner' : 'contributor';
+  allTasks.forEach(t => {
+    const q = '“' + t.name + '”', neg = t.negotiation || { status:'none' }, ex = t.extension || { status:'none' }, blocked = isBlocked(t), sched = isScheduled(t);
+    const add = (rank, text, opts) => items.push(Object.assign({ id:t.id, rank, text }, opts || {}));
+    if(V){
+      if(blocked) add(1, 'Unblock Sam on ' + q + ': ' + t.blocked.reason, { flag:true });
+      if(t.status === 'submitted'){ const d = daysSince(t.submittedAt); add(d >= 2 ? 1 : 2, 'Review ' + q + ' — submitted ' + (d ? d + 'd ago' : 'today'), { flag:d >= 2 }); }
+      if(['open','assigned_pending'].includes(t.status) && neg.status === 'pending') add(2, 'Price proposal on ' + q + ': ' + fmtMoney(neg.proposedPrice));
+      if(['claimed','needs_revision'].includes(t.status) && ex.status === 'pending') add(2, 'Extension request on ' + q + ': until ' + fmtDate(ex.date));
+      if(t.status === 'approved'){
+        if(t.paymentIssue) add(1, 'Payment issue on ' + q, { flag:true });
+        else if(t.paymentDueDate && today > t.paymentDueDate) add(1, 'Payment for ' + q + ' was due ' + fmtDate(t.paymentDueDate), { flag:true });
+        else add(3, 'Send payment for ' + q + ' by ' + fmtDate(t.paymentDueDate));
+      }
+      if(t.status === 'payment_sent' && daysSince(t.paymentSentAt) >= 2) add(4, 'Waiting on her to confirm payment for ' + q + ' (sent ' + daysSince(t.paymentSentAt) + 'd ago)', { wait:true });
+      if(['claimed','needs_revision'].includes(t.status) && t.herDeadline && !blocked){
+        if(today > t.herDeadline) add(2, q + ' is past her deadline (' + fmtDate(t.herDeadline) + ')', { flag:true });
+        else if(t.herDeadline === today || t.herDeadline === addDaysISO(today, 1)) add(4, q + ' is due ' + (t.herDeadline === today ? 'today' : 'tomorrow'), { wait:true });
+      }
+      if(['open','assigned_pending'].includes(t.status) && !sched && neg.status !== 'pending' && daysSince(t.createdAt) >= 3) add(5, q + ' hasn\'t been picked up yet (' + daysSince(t.createdAt) + 'd)', { wait:true });
+    } else {
+      if(t.status === 'assigned_pending' && !sched && neg.status !== 'pending' && neg.status !== 'countered') add(2, 'Accept ' + q + ' and set your deadline');
+      if(neg.status === 'countered' && ['open','assigned_pending'].includes(t.status)) add(2, 'Nora countered your price on ' + q);
+      if(t.status === 'needs_revision' && !blocked) add(1, 'Changes requested on ' + q, { flag:pastDeadline(t.herDeadline) });
+      if(t.status === 'claimed' && t.herDeadline && !blocked){
+        if(pastDeadline(t.herDeadline)) add(1, q + ' is past your deadline — submit, or ask for more time', { flag:true });
+        else if(t.herDeadline === today || t.herDeadline === addDaysISO(today, 1)) add(3, q + ' is due ' + (t.herDeadline === today ? 'today' : 'tomorrow'));
+      }
+      if(blocked) add(5, 'Waiting for Nora to unblock ' + q, { wait:true });
+      if(t.status === 'payment_sent') add(1, 'Confirm you received payment for ' + q);
+      if(t.status === 'approved' && t.paymentDueDate && today > t.paymentDueDate && !t.paymentIssue) add(4, 'Payment for ' + q + ' was due ' + fmtDate(t.paymentDueDate), { wait:true });
+      if(t.status === 'submitted') add(5, 'Waiting for Nora\'s review of ' + q + ' (' + daysSince(t.submittedAt) + 'd)', { wait:true });
+      if(neg.status === 'pending' && ['open','assigned_pending'].includes(t.status)) add(5, 'Waiting for Nora on your price proposal for ' + q, { wait:true });
+    }
+    const lc = (t.comments || []).slice(-1)[0];
+    if(lc && lc.by !== me && !['paid','cancelled'].includes(t.status) && daysSince(lc.at) <= 3) add(3, 'Reply to ' + (V ? 'Sam\'s' : 'Nora\'s') + ' note on ' + q);
+  });
+  if(!V){
+    const openList = allTasks.filter(t => t.status === 'open' && !isScheduled(t));
+    if(openList.length) items.push({ rank:4, text:openList.length + ' open task' + (openList.length > 1 ? 's' : '') + ' you can pick from', id:openList[0].id });
+  }
+  return items.sort((a, b) => a.rank - b.rank);
+}
+function scrollToTask(id){
+  const n = document.getElementById('task-' + id);
+  if(!n) return;
+  if(n.scrollIntoView) n.scrollIntoView({ behavior:'smooth', block:'center' });
+  n.classList.add('flash'); setTimeout(() => n.classList.remove('flash'), 1600);
+}
+function renderFollowUps(){
+  const host = document.getElementById('followUps');
+  const items = buildFollowUps();
+  host.replaceChildren();
+  if(!items.length) return;
+  const box = el('div', { class:'followups' }, el('h3', { text: viewerOwner ? '📌 Follow-ups' : '📌 Your Next Moves' }));
+  items.slice(0, 8).forEach(i => box.appendChild(el('button', { class:'fu-item' + (i.flag ? ' flag' : '') + (i.wait ? ' wait' : ''), text:i.text, onclick: () => scrollToTask(i.id) })));
+  if(items.length > 8) box.appendChild(el('div', { class:'help', text:'+ ' + (items.length - 8) + ' more below' }));
+  host.appendChild(box);
+}
+function renderFocus(){
+  const host = document.getElementById('focus'); host.replaceChildren();
+  if(viewerOwner || !focusId) return;
+  const t = allTasks.find(x => x.id === focusId);
+  if(!t || !['claimed','needs_revision'].includes(t.status)) return;
+  host.appendChild(el('div', { class:'focus' }, el('h3', { text:'🎯 Today\'s focus — just this one' }), taskCard(t, { focus:true })));
+}
+function renderStats(){
+  const V = viewerOwner;
+  const paid = allTasks.filter(t => t.status === 'paid');
+  const motion = allTasks.filter(t => OPEN_STATES.includes(t.status)).length;
+  const card = (n, l, sub) => el('div', { class:'stat-card' }, el('div', { class:'num', text:String(n) }), el('div', { class:'label', text:l }), sub ? el('div', { class:'help', style:'margin:2px 0 0;', text:sub }) : null);
+  const sum = arr => arr.reduce((s, t) => s + priceOf(t), 0);
+  if(V){
+    const spent = allTasks.filter(t => t.status === 'paid' || t.status === 'payment_sent');
+    const month = todayISO().slice(0, 7);
+    const spentMonth = spent.filter(t => spentDate(t) && localISO(new Date(spentDate(t))).slice(0, 7) === month);
+    const sat = addDaysISO(weekStartISO(todayISO()), 4);   // Friday, the last working day
+    const approved = allTasks.filter(t => t.status === 'approved');
+    const dueBySat = approved.filter(t => !t.paymentDueDate || t.paymentDueDate <= sat);
+    const satLabel = parseLocal(sat).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    const sub = approved.length ? 'Total pending: $' + sum(approved) + ' · ' + approved.length + ' task' + (approved.length === 1 ? '' : 's') : 'Nothing pending';
+    document.getElementById('statsRow').replaceChildren(
+      card('$' + sum(dueBySat), '💳 Payment pending — by ' + satLabel, dueBySat.length ? dueBySat.length + ' task' + (dueBySat.length === 1 ? '' : 's') + ' to pay · ' + sub : sub),
+      card('$' + sum(spentMonth), '📆 Spent this month'), card('$' + sum(spent), '💸 Spent, all time'),
+      card(paid.length, '🔥 Tasks completed'), card(motion, '📋 In motion'));
+  } else {
+    const owed = allTasks.filter(t => ['approved','payment_sent'].includes(t.status));
+    document.getElementById('statsRow').replaceChildren(card(paid.length, '🔥 Tasks completed'), card('$' + sum(paid), '💰 Earned'), card('$' + sum(owed), '💳 Pending payment'), card(motion, '📋 In motion'));
+  }
+  const by = {}; paid.forEach(t => { const k = t.skill || 'other'; by[k] = (by[k] || 0) + 1; });
+  document.getElementById('skillLine').textContent = paid.length ? 'By skill: ' + Object.keys(by).map(k => SKILLS[k] + ' × ' + by[k]).join('  ·  ') : '';
+}
+function renderWorkload(){
+  const host = document.getElementById('workload'); host.replaceChildren();
+  const V = viewerOwner, wk = weekStartISO(todayISO()), nx = addDaysISO(wk, 7);
+  const cap = capFor(wk), used = weekUsedMin(wk), logged = weekLoggedMin(wk), planned = used - logged, left = Math.max(0, cap * 60 - used);
+  const hint = document.getElementById('capHint');
+  if(hint) hint.textContent = cap === 0 ? 'This week is marked as time off. Use “Available from” for a later week.' : 'Sam has ' + fmtDur(left) + ' left this week (of ' + cap + 'h). Every task needs an estimate — that\'s what protects her limit. Tasks longer than a week are spread across the weeks they run.';
+  const active = allTasks.filter(t => ['claimed','needs_revision','assigned_pending'].includes(t.status));
+  if(!allTasks.length && cap === HARD_CAP) return;
+  const full = used >= cap * 60;
+  const box = el('div', { class:'workload' },
+    el('div', {}, '⏱️ ' + (V ? 'Sam\'s' : 'Your') + ' week (' + weekLabel(wk) + '): ', el('b', { text:fmtDur(used) + ' of ' + cap + 'h' })),
+    el('div', { class:'bar' }, el('div', { class: full ? 'full' : '', style:'width:' + (cap === 0 ? 100 : Math.min(100, Math.round(used / (cap * 60) * 100))) + '%' })),
+    el('div', { class:'help', text:'Logged ' + fmtDur(logged) + ' · Planned ' + fmtDur(planned) + ' · ' + (left ? fmtDur(left) + ' left' : 'no room left') }));
+  if(cap < HARD_CAP) box.appendChild(el('div', { class:'help', text:'Limit lowered to ' + cap + 'h for this week' + (capReason(wk) ? ' — ' + capReason(wk) : '') + '.' }));
+  if(full) box.appendChild(el('div', { class:'flag', style:'margin-top:6px;', text: V ? 'She\'s at her weekly limit — nothing more can be assigned this week. Schedule what\'s next with “Available from”.' : 'You\'ve reached your limit for the week — new tasks open again on Monday. That\'s what the limit is for.' }));
+  const nxUsed = weekUsedMin(nx);
+  if(nxUsed > 0 || capFor(nx) < HARD_CAP) box.appendChild(el('div', { class:'help', text:'Next week: ' + fmtDur(nxUsed) + ' of ' + capFor(nx) + 'h planned' + (capReason(nx) ? ' — ' + capReason(nx) : '') }));
+  const missing = active.filter(t => !t.estimatedHours).length;
+  if(missing) box.appendChild(el('div', { class:'help', text:missing + ' active task' + (missing > 1 ? 's have' : ' has') + ' no time estimate, so the limit can\'t see ' + (missing > 1 ? 'them' : 'it') + '.' }));
+  box.appendChild(el('div', { class:'actions', style:'margin-top:6px;' }, el('button', { class:'btn-ghost', style:'min-height:32px; padding:4px 10px;', text:'Set hours for a week', onclick: openWeekHours })));
+  host.appendChild(box);
+}
+function renderSections(){
+  const host = document.getElementById('sections'); host.replaceChildren();
+  const V = viewerOwner;
+  if(!allTasks.length){
+    host.appendChild(el('div', { class:'empty', text: V ? 'No tasks yet — create your first one above. Stuck for ideas? Use “Start from an idea”.' : 'Nothing here yet. When Nora posts or assigns a task, it will show up here.' }));
+    syncFilterUI(0); return;
+  }
+  const list = allTasks.filter(passesFilters);
+  syncFilterUI(list.length);
+  if(!list.length){ host.appendChild(el('div', { class:'empty', text:'No tasks match these filters.' })); return; }
+  if(filters.sort !== 'default'){
+    host.appendChild(el('div', { class:'section-title', text:'Results (' + list.length + ')' }));
+    sortTasks(list).forEach(t => host.appendChild(taskCard(t)));
+    return;
+  }
+  const by = (arr, f, dir) => arr.slice().sort((a, b) => String(f(a) || '').localeCompare(String(f(b) || '')) * (dir || 1));
+  const groups = [
+    { key:'open', title: V ? 'Posted — Open for Sam to Pick' : 'Open Tasks — Pick What You Want', sort:t => t.createdAt, dir:-1 },
+    { key:'assigned', title: V ? 'Assigned — Waiting for Sam to Start' : 'Assigned to You — Set Your Deadline to Start', sort:t => t.createdAt, dir:-1 },
+    { key:'progress', title:'In Progress', sort:t => t.herDeadline, dir:1 },
+    { key:'review', title: V ? 'In Review — Your Turn' : 'Submitted — Waiting for Review', sort:t => t.submittedAt, dir:1 },
+    { key:'payment', title:'Payment', sort:t => t.paymentDueDate, dir:1 },
+    { key:'scheduled', title: V ? 'Scheduled — Not Yet Available' : 'Coming Up — Available Soon', sort:t => t.availableFrom, dir:1 },
+    { key:'done', title:'Completed & Paid', sort:t => t.paidAt, dir:-1 },
+  ];
+  groups.forEach(g => {
+    const items = by(list.filter(t => stageOf(t) === g.key), g.sort, g.dir);
+    if(!items.length) return;
+    const total = items.length, limit = (g.key === 'done' && !filtersActive() && !showAllDone) ? 5 : Infinity;
+    host.appendChild(el('div', { class:'section-title', text:g.title + ' (' + total + ')' }));
+    items.slice(0, limit).forEach(t => host.appendChild(taskCard(t)));
+    if(total > limit) host.appendChild(el('button', { class:'btn-ghost', text:'Show all ' + total + ' completed', onclick: () => { showAllDone = true; render(); } }));
+  });
+  const cancelled = list.filter(t => t.status === 'cancelled');
+  if(cancelled.length){
+    const d = el('details', { class:'hist', style:'margin-top:22px;' }, el('summary', { text:'Cancelled (' + cancelled.length + ')' }));
+    cancelled.forEach(t => d.appendChild(taskCard(t)));
+    host.appendChild(d);
+  }
+}
+function render(){
+  viewerOwner = amOwner && !previewMode;
+  document.getElementById('ownerCreatePanel').classList.toggle('hidden', !viewerOwner);
+  document.querySelectorAll('.owner-only').forEach(n => n.classList.toggle('hidden', !viewerOwner));
+  document.querySelectorAll('.preview-only').forEach(n => n.classList.toggle('hidden', !(amOwner && previewMode)));
+  document.querySelectorAll('.her-only').forEach(n => n.classList.toggle('hidden', amOwner));
+  renderAccessNote(); renderSessionCard(); renderStats(); renderFocus(); renderWorkload(); renderFollowUps(); renderSections(); refreshCountdowns();
+}
+
+/* ============ create-task form ============ */
+function setupCreateForm(){
+  const tierSel = document.getElementById('newTaskTier'), skillSel = document.getElementById('newTaskSkill'), starter = document.getElementById('starterSelect');
+  tierOptions().forEach(o => tierSel.appendChild(el('option', { value:o.value, text:o.label })));
+  skillOptions().forEach(o => skillSel.appendChild(el('option', { value:o.value, text:o.label })));
+  skillSel.value = 'other';
+  starter.appendChild(el('option', { value:'', text:'— or write your own —' }));
+  STARTERS.forEach((s, i) => starter.appendChild(el('option', { value:String(i), text:'[' + TIERS[s.tier].label + '] ' + s.name })));
+  const priceInp = document.getElementById('newTaskPrice');
+  function syncPrice(){ const r = TIERS[tierSel.value]; priceInp.min = r.min; priceInp.max = r.max; priceInp.value = midPrice(tierSel.value); }
+  tierSel.addEventListener('change', syncPrice); syncPrice();
+  starter.addEventListener('change', () => {
+    if(starter.value === '') return;
+    const s = STARTERS[Number(starter.value)];
+    document.getElementById('newTaskName').value = s.name; document.getElementById('newTaskDesc').value = s.desc;
+    document.getElementById('newTaskCriteria').value = s.done;
+    tierSel.value = s.tier; skillSel.value = s.skill; document.getElementById('newTaskDuration').value = s.days;
+    document.getElementById('newTaskHours').value = s.hours; syncPrice();
+  });
+  document.getElementById('createTaskBtn').onclick = async () => {
+    if(!amOwner) return;
+    const status = document.getElementById('createStatus');
+    const name = document.getElementById('newTaskName').value.trim(), description = document.getElementById('newTaskDesc').value.trim();
+    const url = document.getElementById('newTaskUrl').value.trim();
+    const hoursRaw = document.getElementById('newTaskHours').value, hours = Number(hoursRaw);
+    const from = document.getElementById('newTaskFrom').value;
+    if(!name || !description){ status.textContent = 'Add a name and a description first.'; return; }
+    if(hoursRaw === '' || isNaN(hours) || hours < 0.25 || hours > MAX_TASK_HOURS){ status.textContent = 'Add an estimated time between 15 minutes and ' + MAX_TASK_HOURS + ' hours — it\'s what protects her weekly limit.'; return; }
+    if(url && !safeUrl(url)){ status.textContent = 'The reference link should start with http:// or https://'; return; }
+    if(from && from < todayISO()){ status.textContent = '“Available from” can\'t be in the past.'; return; }
+    if(!db){ status.textContent = 'Shared storage isn\'t available.'; return; }
+    const tier = tierSel.value, raw = Number(priceInp.value), price = clampPrice(tier, raw);
+    const mode = document.getElementById('newTaskMode').value, repeat = document.getElementById('newTaskRepeat').value;
+    const days = Number(document.getElementById('newTaskDuration').value) || 3;
+    if(mode === 'assigned'){
+      const msg = assignBlockMessage(hours, from || null, days, null);
+      if(msg){ await blockDialog('Sam\'s weekly limit', msg); return; }
+    }
+    const critTexts = document.getElementById('newTaskCriteria').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const now = new Date().toISOString();
+    const data = { name, description, resourceUrl:url, skill:skillSel.value, tier, suggestedPrice:price, agreedPrice:price, durationDays:days, estimatedHours:hours,
+      criteria:critTexts.map(s => ({ text:s, done:false })), availableFrom:from || null,
+      mode, status: mode === 'open' ? 'open' : 'assigned_pending', negotiation:{ status:'none' }, extension:{ status:'none' }, createdAt:now,
+      history:[{ at:now, by:'owner', text:(mode === 'open' ? 'posted the task to the open pool' : 'assigned the task directly') + (from ? ', available from ' + fmtDate(from) : '') }] };
+    let created;
+    try{
+      if(repeat !== 'none'){
+        const rule = { name, description, resourceUrl:url, skill:skillSel.value, tier, price, durationDays:days, estimatedHours:hours, criteria:critTexts, mode, cadence:repeat,
+          nextDate:advanceDate(from && from > todayISO() ? from : todayISO(), repeat), active:true, createdAt:now };
+        const rref = await db.collection('recurring').add(rule);
+        data.recurringId = rref.id; data.cadence = repeat;
+      }
+      const ref = await db.collection('tasks').add(data);
+      created = Object.assign({ id:ref.id }, data);
+      if(!allTasks.some(t => t.id === ref.id)) allTasks.unshift(created);
+      render();
+    }catch(e){ status.textContent = 'Couldn\'t post the task — try again.'; return; }
+    ['newTaskName','newTaskDesc','newTaskUrl','newTaskHours','newTaskCriteria','newTaskFrom'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('newTaskRepeat').value = 'none';
+    starter.value = ''; syncPrice();
+    status.textContent = '';
+    offerNotify(created, mode === 'open' ? 'posted' : 'assigned', 'Posted ✓' + (raw !== price ? ' (price adjusted to fit the tier range)' : '') + (repeat !== 'none' ? ' — repeats ' + CADENCE[repeat].toLowerCase() : ''));
+  };
+}
+
+/* ============ DEMO: storage that lives only in this browser ============ */
+/* Same small interface the real tracker uses (doc / collection / onSnapshot), but everything is kept
+   in this browser's localStorage. Nothing is shared, synced or sent anywhere. */
+const DEMO_KEY = 'tt_demo_docs_v1', DEMO_WEEK_KEY = 'tt_demo_week_v1', DEMO_ROLE_KEY = 'tt_demo_role_v1';
+const DEMO_UID = 'demo-sam';
+function makeDemoDB(){
+  let docs = {};
+  try{ docs = JSON.parse(localStorage.getItem(DEMO_KEY) || '{}') || {}; }catch(e){ docs = {}; }
+  const subs = new Set();
+  const clone = v => JSON.parse(JSON.stringify(v));
+  const parentOf = p => p.slice(0, p.lastIndexOf('/'));
+  const idOf = p => p.slice(p.lastIndexOf('/') + 1);
+  const save = () => { try{ localStorage.setItem(DEMO_KEY, JSON.stringify(docs)); }catch(e){} };
+  const notify = () => { Promise.resolve().then(() => subs.forEach(fn => { try{ fn(); }catch(e){ console.error(e); } })); };
+  const snapDoc = p => ({ id:idOf(p), exists: !!docs[p], data: () => docs[p] ? clone(docs[p]) : undefined });
+  function snapCol(col, opts){
+    let list = Object.keys(docs).filter(p => parentOf(p) === col).map(p => ({ id:idOf(p), d:docs[p] }));
+    if(opts.order){ const f = opts.order.field, dir = opts.order.dir === 'desc' ? -1 : 1; list.sort((a, b) => String(a.d[f] == null ? '' : a.d[f]).localeCompare(String(b.d[f] == null ? '' : b.d[f])) * dir); }
+    if(opts.limit) list = list.slice(0, opts.limit);
+    return { docs: list.map(x => ({ id:x.id, data: () => clone(x.d) })) };
+  }
+  function doc(p){
+    return {
+      id: idOf(p),
+      async get(){ return snapDoc(p); },
+      async set(data){ docs[p] = clone(data); save(); notify(); },
+      async update(data){ if(!docs[p]) throw new Error('Not found'); Object.assign(docs[p], clone(data)); save(); notify(); },
+      async delete(){ delete docs[p]; save(); notify(); },
+      onSnapshot(cb){ const fn = () => cb(snapDoc(p)); subs.add(fn); fn(); return () => subs.delete(fn); },
+    };
+  }
+  function collection(col, opts){
+    opts = opts || {};
+    return {
+      orderBy(field, dir){ return collection(col, Object.assign({}, opts, { order:{ field, dir } })); },
+      limit(n){ return collection(col, Object.assign({}, opts, { limit:n })); },
+      async add(data){ const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); docs[col + '/' + id] = clone(data); save(); notify(); return { id }; },
+      onSnapshot(cb){ const fn = () => cb(snapCol(col, opts)); subs.add(fn); fn(); return () => subs.delete(fn); },
+    };
+  }
+  return {
+    doc, collection,
+    hasAny: col => Object.keys(docs).some(p => parentOf(p) === col),
+    replaceAll(next){ docs = clone(next); save(); notify(); },
+  };
+}
+
+/* ============ DEMO: fictional sample data (Juniper Home Goods — Nora & Sam) ============ */
+/* Dates are built around "today", so the demo always looks current. It refreshes itself each new week. */
+function buildDemoDocs(){
+  const today = todayISO(), ws = weekStartISO(today), we = addDaysISO(ws, 6), lw = addDaysISO(ws, -7);
+  const D = n => addDaysISO(today, n), L = n => addDaysISO(lw, n);
+  const at = (iso, h, m) => { const d = parseLocal(iso); d.setHours(h, m || 0, 0, 0); return d.toISOString(); };
+  const msAt = (iso, h, m) => { const d = parseLocal(iso); d.setHours(h, m || 0, 0, 0); return d.getTime(); };
+  const docs = {};
+  const H = (when, by, text) => ({ at:when, by, text });
+  function base(i, price, extra){
+    const st = STARTERS[i];
+    return Object.assign({ name:st.name, description:st.desc, resourceUrl:'', skill:st.skill, tier:st.tier, suggestedPrice:price, agreedPrice:price,
+      durationDays:st.days, estimatedHours:st.hours, criteria:st.done.split('\n').map(x => ({ text:x, done:false })), availableFrom:null,
+      mode:'open', status:'open', negotiation:{ status:'none' }, extension:{ status:'none' }, comments:[] }, extra);
+  }
+  const tick = (t, n) => { t.criteria.forEach((c, i) => { if(n === undefined || i < n) c.done = true; }); return t; };
+  // A finished work session in Sam's private diary, plus the matching time entry on the task.
+  function sess(taskId, taskName, day, h, mins, what, how){
+    const s = msAt(day, h), e = s + mins * 60000, sid = 's-' + s + '-' + taskId.slice(-3);
+    docs['data/users/' + DEMO_UID + '/' + sid] = { startAt:s, endAt:e, segments:[{ taskId, taskName, startAt:s, endAt:e }], what, how, createdAt:e };
+    return { at:new Date(s).toISOString(), minutes:mins, note:'work session', sid };
+  }
+  const put = (id, t) => { docs['tasks/' + id] = t; };
+
+  // 1. Open in the pool
+  put('t-insta', base(3, 20, { createdAt:at(D(-1), 9, 15),
+    history:[H(at(D(-1), 9, 15), 'owner', 'posted the task to the open pool')] }));
+
+  // 2. Open, with Sam's price proposal waiting for Nora
+  put('t-listings', base(5, 40, { createdAt:at(D(-2), 10),
+    negotiation:{ status:'pending', proposedPrice:45, reason:'Two are the new ceramic sets and need measurements and care notes, so they take longer.' },
+    history:[H(at(D(-2), 10), 'owner', 'posted the task to the open pool'),
+             H(at(D(-1), 11, 20), 'contributor', 'proposed $45 — “Two are the new ceramic sets and need measurements and care notes, so they take longer.”')] }));
+
+  // 3. Assigned, waiting for Sam to accept and pick a deadline (kept inside this week)
+  const daysLeft = Math.round((parseLocal(we) - parseLocal(today)) / 86400000) + 1;
+  const assignedAt = new Date(Date.now() - 45 * 60000).toISOString();
+  put('t-summary', base(7, 35, { mode:'assigned', status:'assigned_pending', durationDays:Math.max(1, Math.min(3, daysLeft)), createdAt:assignedAt,
+    history:[H(assignedAt, 'owner', 'assigned the task directly')] }));
+
+  // 4. In progress, 2h logged today
+  const holiday = base(9, 80, { mode:'assigned', status:'claimed', createdAt:at(D(-3), 9), claimedAt:at(D(-2), 10), herDeadline:we,
+    timeLog:[{ at:at(today, 12), minutes:120, note:'Created and tested the 3 discount codes' }],
+    comments:[{ at:at(D(-2), 10, 30), by:'owner', text:'The banner photos are in the “Holiday sale” folder. The green one is my favourite.' }],
+    history:[H(at(D(-3), 9), 'owner', 'assigned the task directly'),
+             H(at(D(-2), 10), 'contributor', 'accepted the task — deadline set to ' + fmtDate(we)),
+             H(at(today, 12), 'contributor', 'logged 2h (Created and tested the 3 discount codes)')] });
+  put('t-holiday', tick(holiday, 1));
+
+  // 5. Overdue: in progress past its deadline, 7h of 8h logged last week
+  const faqName = STARTERS[11].name;
+  const faqLog = [
+    sess('t-faq', faqName, L(1), 9, 180, 'Collected 40 customer emails and pulled out the repeated questions.', 'Searched the inbox by keyword (shipping, returns, care) and grouped questions in a spreadsheet.'),
+    sess('t-faq', faqName, L(3), 10, 150, 'Wrote answers for 17 questions in 5 groups.', 'Checked each answer against the returns and shipping pages so nothing contradicts them.'),
+    sess('t-faq', faqName, L(4), 14, 90, 'Tidied the wording and prepared the page draft.', 'Read every answer out loud to keep it short and friendly.'),
+  ];
+  const faq = base(11, 70, { mode:'open', status:'claimed', createdAt:at(L(-2), 9), claimedAt:at(L(-1), 10), herDeadline:D(-2), timeLog:faqLog,
+    history:[H(at(L(-2), 9), 'owner', 'posted the task to the open pool'),
+             H(at(L(-1), 10), 'contributor', 'claimed the task — deadline set to ' + fmtDate(D(-2))),
+             H(at(L(1), 12), 'contributor', 'logged 3h (work session)'), H(at(L(3), 12, 30), 'contributor', 'logged 2h 30m (work session)'),
+             H(at(L(4), 15, 30), 'contributor', 'logged 1h 30m (work session)')] });
+  put('t-faq', tick(faq, 2));
+
+  // 6. Submitted, waiting for Nora's review, with a note from Sam
+  const supName = STARTERS[8].name;
+  const supLog = [
+    sess('t-supplier', supName, L(2), 11, 90, 'Emailed the supplier twice; the emails bounced.', 'Found a direct phone number on their website instead.'),
+    sess('t-supplier', supName, L(3), 15, 90, 'Called the supplier and got the ship date confirmed by email.', 'Asked them to put the date in writing so we have a record.'),
+  ];
+  put('t-supplier', tick(base(8, 30, { mode:'assigned', status:'submitted', createdAt:at(L(0), 9), claimedAt:at(L(1), 9), herDeadline:L(4), timeLog:supLog,
+    submittedAt:at(D(-1), 16), submitNote:'The supplier confirmed the spring order ships next Thursday. Their email and the tracking details are saved in the Orders folder.',
+    reflection:'Their emails kept bouncing, so I called instead.',
+    comments:[{ at:at(D(-1), 16, 5), by:'contributor', text:'They offered 5% off if we pay upfront next time. Should I ask them to confirm that in writing?' }],
+    history:[H(at(L(0), 9), 'owner', 'assigned the task directly'), H(at(L(1), 9), 'contributor', 'accepted the task — deadline set to ' + fmtDate(L(4))),
+             H(at(L(2), 12, 30), 'contributor', 'logged 1h 30m (work session)'), H(at(L(3), 16, 30), 'contributor', 'logged 1h 30m (work session)'),
+             H(at(D(-1), 16), 'contributor', 'submitted the work')] })));
+
+  // 7. Approved, payment pending (from the weekly recurring rule)
+  const emName = STARTERS[0].name;
+  const emLog = [
+    sess('t-emails', emName, L(0), 13, 75, 'Answered 18 customer emails.', 'Used the saved templates for delivery questions and wrote the rest by hand.'),
+    sess('t-emails', emName, L(1), 13, 60, 'Answered the last 9 emails and flagged one damaged-item complaint.', 'Asked the customer for a photo before promising a replacement.'),
+  ];
+  put('t-emails', tick(base(0, 20, { mode:'assigned', status:'approved', recurringId:'r-emails', cadence:'weekly', createdAt:at(L(0), 8), claimedAt:at(L(0), 9), herDeadline:L(1), timeLog:emLog,
+    submittedAt:at(L(1), 15), approvedAt:at(L(2), 10), paymentDueDate:D(3), paymentIssue:false,
+    feedbackGood:'Warm, clear replies. Two customers wrote back to say thank you.', feedbackGrow:'Add the order number to the subject line so replies are easier to find.',
+    history:[H(at(L(0), 8), 'owner', 'assigned the task automatically (every week)'), H(at(L(0), 9), 'contributor', 'accepted the task — deadline set to ' + fmtDate(L(1))),
+             H(at(L(1), 15), 'contributor', 'submitted the work'), H(at(L(2), 10), 'owner', 'approved the work — payment due ' + fmtDate(D(3)) + ' (with feedback)')] })));
+
+  // 8–10. Completed and paid (fills the statements)
+  function paidTask(id, i, price, day, minutes, note, extra){
+    const logAt = at(L(day), 12);
+    const t = tick(base(i, price, Object.assign({ mode:'assigned', status:'paid', createdAt:at(L(day), 8), claimedAt:at(L(day), 9), herDeadline:L(day),
+      timeLog:[{ at:logAt, minutes, note }], submittedAt:at(L(day), 14), approvedAt:at(L(day + 1), 10), paymentDueDate:L(day + 2),
+      paymentSentAt:at(L(day + 2), 12), paymentNote:'Wise transfer', paidAt:at(L(day + 2), 18),
+      history:[H(at(L(day), 8), 'owner', 'assigned the task directly'), H(at(L(day), 9), 'contributor', 'accepted the task — deadline set to ' + fmtDate(L(day))),
+               H(logAt, 'contributor', 'logged ' + fmtDur(minutes)), H(at(L(day), 14), 'contributor', 'submitted the work'),
+               H(at(L(day + 1), 10), 'owner', 'approved the work — payment due ' + fmtDate(L(day + 2)) + ' (with feedback)'),
+               H(at(L(day + 2), 12), 'owner', 'sent the payment (Wise transfer)'), H(at(L(day + 2), 18), 'contributor', 'confirmed the payment was received')] }, extra)));
+    put(id, t);
+  }
+  paidTask('t-stock', 1, 15, 0, 60, 'Weekend sales entered', { feedbackGood:'Quick and accurate, thank you!' });
+  paidTask('t-late', 2, 20, 1, 75, 'Courier chat and customer updates',
+    { feedbackGood:'Your updates to customers were lovely. One of them left a 5-star review because of it.', reflection:'The courier\'s online chat was much faster than calling.' });
+  paidTask('t-reviews', 4, 15, 3, 45, 'Replied to 6 reviews', { feedbackGrow:'Keep replies under 3 sentences so they read well on phones.' });
+
+  // Weekly recurring rule
+  const r = STARTERS[0];
+  docs['recurring/r-emails'] = { name:r.name, description:r.desc, resourceUrl:'', skill:r.skill, tier:r.tier, price:20, durationDays:r.days, estimatedHours:r.hours,
+    criteria:r.done.split('\n'), mode:'assigned', cadence:'weekly', nextDate:addDaysISO(ws, 7), active:true, createdAt:at(L(0), 8) };
+  return docs;
+}
+function seedDemo(){
+  db.replaceAll(buildDemoDocs());
+  lsSet(DEMO_WEEK_KEY, weekStartISO(todayISO()));
+  ['tt_focus', 'tt_sess_snooze'].forEach(k => { try{ localStorage.removeItem(k); }catch(e){} });
+  focusId = null;
+}
+function ensureDemoSeed(){
+  if(!db.hasAny('tasks') || lsGet(DEMO_WEEK_KEY) !== weekStartISO(todayISO())) seedDemo();
+}
+
+/* ============ DEMO: switch between Nora's and Sam's view ============ */
+let demoRole = 'owner', sessUnsub = null;
+try{ demoRole = localStorage.getItem(DEMO_ROLE_KEY) === 'team' ? 'team' : 'owner'; }catch(e){}
+function refreshBanner(){
+  const banner = document.getElementById('roleBanner'), sub = document.getElementById('subText');
+  banner.style.background = '';
+  banner.textContent = amOwner ? '👑 You\'re Nora, who runs the shop' : '🙋 You\'re Sam, Nora\'s part-time virtual assistant';
+  sub.textContent = amOwner ? 'Post tasks, review Sam\'s work, and keep every payment transparent.' : 'Pick tasks, set your own deadlines, log your time, and confirm every payment.';
+  document.getElementById('viewOwnerBtn').setAttribute('aria-pressed', String(amOwner));
+  document.getElementById('viewTeamBtn').setAttribute('aria-pressed', String(!amOwner));
+}
+function applyRole(role){
+  demoRole = role; lsSet(DEMO_ROLE_KEY, role);
+  amOwner = role === 'owner'; previewMode = false; document.body.classList.remove('preview-mode');
+  if(sessUnsub){ sessUnsub(); sessUnsub = null; }
+  session = null; diary = []; sessStale = false;
+  myUid = amOwner ? null : DEMO_UID;   // only Sam's view opens Sam's private diary
+  if(myUid) sessUnsub = db.collection(sessBase()).onSnapshot(onSessionsSnapshot, () => {});
+  recurringRan = false; runRecurring();
+  refreshBanner(); render();
+}
+async function switchRole(role){
+  if(role === demoRole) return;
+  if(session && !amOwner){
+    const go = await confirmDialog('Sam\'s timer is running', 'Switching views pauses nothing — the timer keeps running in Sam\'s view. Switch anyway?', 'Switch');
+    if(!go) return;
+  }
+  applyRole(role);
+  window.scrollTo({ top:0, behavior:'smooth' });
+  toast(role === 'owner' ? 'Now viewing as Nora' : 'Now viewing as Sam');
+}
+async function resetDemo(){
+  const go = await confirmDialog('Reset the demo?', 'This brings back the original sample tasks and clears anything you changed.', 'Reset demo', true);
+  if(!go) return;
+  if(sessUnsub){ sessUnsub(); sessUnsub = null; }
+  Object.assign(filters, { q:'', skill:'', tier:'', min:'', max:'', due:'', stage:'', mine:false, sort:'default' });
+  showAllDone = false;
+  seedDemo();
+  applyRole(demoRole);
+  window.scrollTo({ top:0, behavior:'smooth' });
+  toast('Demo reset ✓');
+}
+
+/* ============ DEMO: "Make it yours" ============ */
+function openAdapt(){
+  const tiers = Object.keys(TIERS).map(k => TIERS[k].label + ' $' + TIERS[k].min + '–$' + TIERS[k].max).join(', ');
+  const skills = Object.keys(SKILLS).filter(k => k !== 'other').map(k => SKILLS[k].replace(/^\S+\s/, '')).join(', ');
+  const rows = [
+    ['Pay per task', tiers, 'Your own price ranges and currency.'],
+    ['Weekly hour limit', HARD_CAP + ' hours', 'Any limit that fits your agreement.'],
+    ['Working week', 'Monday to Friday', 'Your team\'s working days.'],
+    ['Task types', skills, 'Categories that match your work.'],
+    ['Ready-made tasks', STARTERS.length + ' shop tasks', 'Your recurring tasks, in your words.'],
+    ['Stages', 'Open, In progress, In review, Payment, Completed', 'Renamed to match how you work.'],
+    ['Messages', 'Drafts you copy or open in WhatsApp', 'Wording and tone that sound like you.'],
+  ];
+  return openModal(close => el('div', {},
+    el('div', { class:'modal-title', text:'⚙️ Make it yours' }),
+    el('p', { class:'modal-intro', text:'This demo is set up for a small online shop. Every item below can be adapted to how your business works.' }),
+    rows.map(r => el('div', { class:'note-box calm' },
+      el('div', { class:'adapt-row' }, el('b', { text:r[0] }), el('span', { class:'help', style:'margin:0;', text:r[2] })),
+      el('div', { style:'font-size:13px; margin-top:2px;', text:'In this demo: ' + r[1] }))),
+    el('p', { class:'help', style:'margin-top:10px;', text:'In this demo, everything stays in your browser. A real team needs both people to see the same information, so before we start we agree together on where your data lives and who owns it.' }),
+    el('div', { class:'actions' }, el('button', { class:'btn-primary', text:'Got it', onclick: () => close(null) }))));
+}
+
+/* ============ init ============ */
+async function init(){
+  try{ focusId = localStorage.getItem('tt_focus') || null; }catch(e){}
+  db = makeDemoDB();
+  ensureDemoSeed();
+  amOwner = demoRole === 'owner';
+  setupCreateForm(); setupFilterBar(); setupReminderCard();
+  document.getElementById('tbStatement').onclick = openStatement;
+  document.getElementById('tbHelp').onclick = openGuide;
+  document.getElementById('tbStart').onclick = startFlow;
+  document.getElementById('tbDiary').onclick = openDiary;
+  document.getElementById('tbRecurring').onclick = manageRecurring;
+  document.getElementById('viewOwnerBtn').onclick = () => switchRole('owner');
+  document.getElementById('viewTeamBtn').onclick = () => switchRole('team');
+  document.getElementById('demoResetBtn').onclick = resetDemo;
+  document.getElementById('demoAdaptBtn').onclick = openAdapt;
+  db.collection('tasks').orderBy('createdAt', 'desc').limit(200).onSnapshot(snap => {
+    allTasks = snap.docs.map(d => Object.assign({ id:d.id }, d.data()));
+    tasksLoaded = true; render(); runRecurring();
+  });
+  db.doc('settings/capacity').onSnapshot(snap => {
+    capSettings = { weeks: (snap.exists && snap.data().weeks) ? snap.data().weeks : {} };
+    render();
+  });
+  db.collection('recurring').limit(50).onSnapshot(snap => {
+    allRules = snap.docs.map(d => Object.assign({ id:d.id }, d.data()));
+    rulesLoaded = true; runRecurring();
+  });
+  applyRole(demoRole);
+  setInterval(refreshCountdowns, 60000);
+  setInterval(heartbeat, 120000);
+  setInterval(() => { if(session){ renderSessionCard(); renderWorkload(); } }, 60000);
+  document.addEventListener('visibilitychange', onVisible);
+}
+
+init();
+</script>
+</body>
+</html>
